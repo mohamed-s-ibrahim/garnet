@@ -4909,7 +4909,6 @@ def test_interconnect_multiple_output_ports_conv(dw_files, io_sides):
                                flags=["-Wno-fatal"])
 
 
-@pytest.mark.skip
 def test_interconnect_accumulation_buffer(dw_files, io_sides):
     chip_size = 2
     interconnect = create_cgra(chip_size, chip_size, io_sides,
@@ -4930,7 +4929,7 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
         "e4": [("i4", "io2f_1"), ("m0", "ren_in_0")],
         "e5": [("m0", "valid_out_0"), ("i3", "f2io_1")],
         "e6": [("m0", "valid_out_1"), ("i4", "f2io_1")],
-        "e7": [("m0", "valid_out_1"), ("m0", "wen_in_1")],
+        "e7": [("i6", "io2f_1"), ("m0", "wen_in_1")],
         "e8": [("I3", "io2f_16"), ("m0", "data_in_1")],
         "e9": [("i5", "io2f_1"), ("m0", "ren_in_1")]
     }
@@ -4955,14 +4954,23 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
     mode = Mode.DB
     iter_cnt = range_0 * range_1
     configs_mem = [("strg_ub_app_ctrl_input_port_0", 0, 0),
-                   ("strg_ub_app_ctrl_output_port_0", 1, 0),
-                   ("strg_ub_app_ctrl_coarse_output_port_0", 1, 0),
+                   ("strg_ub_app_ctrl_output_port_0", 0, 0),
+                   ("strg_ub_app_ctrl_coarse_output_port_0", 0, 0),
                    ("strg_ub_app_ctrl_read_depth_0", depth, 0),
-                   ("strg_ub_app_ctrl_write_depth_wo_0", depth, 0),
-                   ("strg_ub_app_ctrl_write_depth_ss_0", depth, 0),
+                   ("strg_ub_app_ctrl_write_depth_wo_0", 7 * 4, 0),
+                   ("strg_ub_app_ctrl_write_depth_ss_0", 4, 0),
                    ("strg_ub_app_ctrl_coarse_read_depth_0", int(depth / 4), 0),
-                   ("strg_ub_app_ctrl_coarse_write_depth_wo_0", int(depth / 4), 0),
-                   ("strg_ub_app_ctrl_coarse_write_depth_ss_0", int(depth / 4), 0),
+                   ("strg_ub_app_ctrl_coarse_write_depth_wo_0", 7, 0),
+                   ("strg_ub_app_ctrl_coarse_write_depth_ss_0", 1, 0),
+
+                   ("strg_ub_app_ctrl_input_port_1", 0, 0),
+                   ("strg_ub_app_ctrl_output_port_1", 0, 0),
+                   ("strg_ub_app_ctrl_read_depth_1", 4, 0),
+                   ("strg_ub_app_ctrl_write_depth_wo_1", 0, 0),
+                   ("strg_ub_app_ctrl_write_depth_ss_1", 4, 0),
+                   ("strg_ub_app_ctrl_coarse_read_depth_1", 1, 0),
+                   ("strg_ub_app_ctrl_coarse_write_depth_wo_1", 0, 0),
+                   ("strg_ub_app_ctrl_coarse_write_depth_ss_1", 1, 0),
 
                    ("strg_ub_agg_in_0_in_period", 2, 0),
                    ("strg_ub_agg_in_0_in_sched_0", 0, 0),
@@ -5019,14 +5027,6 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
                    ("chain_idx_input", 0, 0),
                    ("chain_idx_output", 0, 0),
 
-                   ("strg_ub_app_ctrl_input_port_1", 1, 0),
-                   ("strg_ub_app_ctrl_read_depth_1", depth, 0),
-                   ("strg_ub_app_ctrl_write_depth_wo_1", depth, 0),
-                   ("strg_ub_app_ctrl_write_depth_ss_1", depth, 0),
-                   ("strg_ub_app_ctrl_coarse_read_depth_1", int(depth / 4), 0),
-                   ("strg_ub_app_ctrl_coarse_write_depth_wo_1", int(depth / 4), 0),
-                   ("strg_ub_app_ctrl_coarse_write_depth_ss_1", int(depth / 4), 0),
-
                    ("strg_ub_agg_in_1_in_period", 2, 0),
                    ("strg_ub_agg_in_1_in_sched_0", 0, 0),
                    ("strg_ub_agg_in_1_in_sched_1", 1, 0),
@@ -5039,9 +5039,9 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
                    ("strg_ub_input_addr_ctrl_address_gen_1_ranges_1", 100, 0),
                    ("strg_ub_input_addr_ctrl_address_gen_1_ranges_2", 0, 0),
                    ("strg_ub_input_addr_ctrl_address_gen_1_ranges_3", 0, 0),
-                   ("strg_ub_input_addr_ctrl_address_gen_1_starting_addr", 0, 0),
+                   ("strg_ub_input_addr_ctrl_address_gen_1_starting_addr", 256, 0),
                    ("strg_ub_input_addr_ctrl_address_gen_1_strides_0", 1, 0),
-                   ("strg_ub_input_addr_ctrl_address_gen_1_strides_1", 0, 0),
+                   ("strg_ub_input_addr_ctrl_address_gen_1_strides_1", 256, 0),
                    ("strg_ub_input_addr_ctrl_address_gen_1_strides_2", 0, 0),
                    ("strg_ub_input_addr_ctrl_address_gen_1_strides_3", 0, 0),
                    ("strg_ub_input_addr_ctrl_address_gen_1_strides_4", 0, 0),
@@ -5056,7 +5056,7 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
                    ("strg_ub_output_addr_ctrl_address_gen_1_ranges_5", 0, 0),
                    ("strg_ub_output_addr_ctrl_address_gen_1_starting_addr", 0, 0),
                    ("strg_ub_output_addr_ctrl_address_gen_1_strides_0", 1, 0),
-                   ("strg_ub_output_addr_ctrl_address_gen_1_strides_1", 0, 0),
+                   ("strg_ub_output_addr_ctrl_address_gen_1_strides_1", 256, 0),
                    ("strg_ub_output_addr_ctrl_address_gen_1_strides_2", 0, 0),
                    ("strg_ub_output_addr_ctrl_address_gen_1_strides_3", 0, 0),
                    ("strg_ub_output_addr_ctrl_address_gen_1_strides_4", 0, 0),
@@ -5104,6 +5104,8 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
     dst1 = f"io2glb_16_X{dst1_x:02X}_Y{dst1_y:02X}"
     wen_x, wen_y = placement["i3"]
     wen = f"glb2io_1_X{wen_x:02X}_Y{wen_y:02X}"
+    wen1_x, wen1_y = placement["i6"]
+    wen1 = f"glb2io_1_X{wen1_x:02X}_Y{wen1_y:02X}"
     ren_x, ren_y = placement["i4"]
     ren = f"glb2io_1_X{ren_x:02X}_Y{ren_y:02X}"
     ren1_x, ren1_y = placement["i5"]
@@ -5119,7 +5121,7 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
     inputs = []
     for j in range(3):
         for i in range(depth):
-            inputs.append(i + j)
+            inputs.append(i + j + 1)
 
     outputs = []
     outputs1 = []
@@ -5142,16 +5144,26 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
         else:
             tester.poke(circuit.interface[wen], 0)
 
-        if i >= depth:
+        if i >= depth - 4 and i < 2 * depth - 4:
             tester.poke(circuit.interface[ren1], 1)
         else:
             tester.poke(circuit.interface[ren1], 0)
 
+        if i >= depth and i < 2 * depth:
+            tester.poke(circuit.interface[wen1], 1)
+            tester.poke(circuit.interface[src], inputs[input_idx])
+
+            input_idx = input_idx + 1
+        else:
+            tester.poke(circuit.interface[wen1], 0)
+
+        tester.poke(circuit.interface[ren], 0)
         tester.eval()
 
         tester.step(2)
 
     with tempfile.TemporaryDirectory() as tempdir:
+        tempdir = "dump"
         for genesis_verilog in glob.glob("genesis_verif/*.*"):
             shutil.copy(genesis_verilog, tempdir)
         for filename in dw_files:
@@ -5166,4 +5178,4 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
                                magma_output="coreir-verilog",
                                magma_opts={"coreir_libs": {"float_DW"}},
                                directory=tempdir,
-                               flags=["-Wno-fatal"])
+                               flags=["-Wno-fatal", "--trace"])
