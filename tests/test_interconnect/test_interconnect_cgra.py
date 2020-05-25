@@ -4943,17 +4943,11 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
     tile_en = 1
     depth = 8 * 4
     chunk = int(depth / 4)
-    range_0 = 2
-    range_1 = 256
-    stride_0 = 0
-    stride_1 = 1
-    dimensionality = 2
-    starting_addr = 0
 
     # 4 is normal start up delay, 1 is due to mult input port agg scheduling
     startup_delay = 4 + 1
     mode = Mode.DB
-    iter_cnt = range_0 * range_1
+
     configs_mem = [("strg_ub_app_ctrl_input_port_0", 0, 0),
                    ("strg_ub_app_ctrl_output_port_0", 0, 0),
                    ("strg_ub_app_ctrl_coarse_output_port_0", 0, 0),
@@ -4964,7 +4958,8 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
                    ("strg_ub_app_ctrl_coarse_write_depth_wo_0", (chunk - 1), 0),
                    ("strg_ub_app_ctrl_coarse_write_depth_ss_0", 1, 0),
 
-                   ("strg_ub_app_ctrl_input_port_1", 0, 0),
+                   ("strg_ub_app_ctrl_input_port_1", 1, 0),
+                   ("strg_ub_app_ctrl_coarse_input_port_1", 1, 0),
                    ("strg_ub_app_ctrl_output_port_1", 1, 0),
                    ("strg_ub_app_ctrl_coarse_output_port_1", 1, 0),
                    ("strg_ub_app_ctrl_read_depth_1", 4, 0),
@@ -5146,12 +5141,12 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
         else:
             tester.poke(circuit.interface[wen], 0)
 
-        if i >= depth - 4 and i < 3 * depth - 4:
+        if i >= depth - 4 and i < 2 * depth - 4:
             tester.poke(circuit.interface[ren1], 1)
         else:
             tester.poke(circuit.interface[ren1], 0)
 
-        if i >= depth and i < 3 * depth:
+        if i >= depth and i < 2 * depth:
             tester.poke(circuit.interface[wen1], 1)
             tester.poke(circuit.interface[src1], inputs[input_idx])
 
@@ -5159,7 +5154,7 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
         else:
             tester.poke(circuit.interface[wen1], 0)
 
-        if i >= 3 * depth and i < 4 * depth:
+        if i >= 2 * depth and i < 3 * depth:
             tester.poke(circuit.interface[ren], 1)
         else:
             tester.poke(circuit.interface[ren], 0)
