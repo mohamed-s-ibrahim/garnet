@@ -5069,7 +5069,7 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
                    ("strg_ub_tba_1_tb_0_range_inner", 2, 0),
                    ("strg_ub_tba_1_tb_0_tb_height", 1, 0),
 
-                   ("strg_ub_sync_grp_sync_group_1", 1, 0),
+                   ("strg_ub_sync_grp_sync_group_1", 2, 0),
                    ("strg_ub_pre_fetch_1_input_latency", 4, 0)]
 
     mem_x, mem_y = placement["m0"]
@@ -5143,12 +5143,12 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
         else:
             tester.poke(circuit.interface[wen], 0)
 
-        if i >= depth - 4 and i < 2 * depth - 4:
+        if i >= depth - 4 and i < 3 * depth - 4:
             tester.poke(circuit.interface[ren1], 1)
         else:
             tester.poke(circuit.interface[ren1], 0)
 
-        if i < 2 * depth:
+        if i < 3 * depth:
             tester.poke(circuit.interface[wen1], 1)
             if i < depth:
                 tester.poke(circuit.interface[src1], 0)
@@ -5159,7 +5159,7 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
         else:
             tester.poke(circuit.interface[wen1], 0)
 
-        if i >= 2 * depth and i < 3 * depth:
+        if i >= 3 * depth and i < 4 * depth:
             tester.poke(circuit.interface[ren], 1)
         else:
             tester.poke(circuit.interface[ren], 0)
