@@ -5069,7 +5069,7 @@ def test_interconnect_accumulation_buffer(dw_files, io_sides):
                    ("strg_ub_tba_1_tb_0_range_inner", 2, 0),
                    ("strg_ub_tba_1_tb_0_tb_height", 1, 0),
 
-                   ("strg_ub_sync_grp_sync_group_1", 2, 0),
+                   ("strg_ub_sync_grp_sync_group_1", 1, 0),
                    ("strg_ub_pre_fetch_1_input_latency", 4, 0)]
 
     mem_x, mem_y = placement["m0"]
