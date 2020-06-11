@@ -1031,8 +1031,8 @@ def test_pond():
     config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_strides_0"), 0, 0))
     config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_strides_1"), 0, 0))
 
-    config_data.append((MCore.get_reg_index("strg_ub_sync_grp_sync_group_0"), 1, 0))
-    config_data.append((MCore.get_reg_index("strg_ub_sync_grp_sync_group_1"), 2, 0))
+#    config_data.append((MCore.get_reg_index("strg_ub_sync_grp_sync_group_0"), 1, 0))
+#    config_data.append((MCore.get_reg_index("strg_ub_sync_grp_sync_group_1"), 2, 0))
 
     # Configure
     for addr, data, feat in config_data:
@@ -1041,11 +1041,10 @@ def test_pond():
     tester.poke(circuit.stall, 0)
     tester.eval()
 
-    data_in = [0] * interconnect_input_ports
-    valid_in = [0] * interconnect_input_ports
+    data_in = [0] * 2
+    valid_in = [0] * 2
     wen_en = 0
-    ren_en = 0
-    addr_in = 0
+    en_en = 0
     ren = 0
 
     for i in range(32):
@@ -1063,7 +1062,6 @@ def test_pond():
             ren_en = 3
             ren = 3
 
-        tester.poke(circuit.addr_in, addr_in)
         tester.poke(cicuit.wen_en, wen_en)
         tester.poke(circuit.ren_en, ren_en)
         tester.poke(circuit.ren, ren)

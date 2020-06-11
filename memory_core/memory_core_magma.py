@@ -186,18 +186,18 @@ class MemCore(ConfigurableCore):
 
         self.add_ports(
             flush=magma.In(TBit),
-            full=magma.Out(TBit),
-            empty=magma.Out(TBit),
+            #full=magma.Out(TBit),
+            #empty=magma.Out(TBit),
             stall=magma.In(TBit),
-            sram_ready_out=magma.Out(TBit)
+            #sram_ready_out=magma.Out(TBit)
         )
 
         self.__inputs.append(self.ports.flush)
         # self.__inputs.append(self.ports.stall)
 
-        self.__outputs.append(self.ports.full)
-        self.__outputs.append(self.ports.empty)
-        self.__outputs.append(self.ports.sram_ready_out)
+#        self.__outputs.append(self.ports.full)
+#        self.__outputs.append(self.ports.empty)
+#        self.__outputs.append(self.ports.sram_ready_out)
 
         cache_key = (self.data_width, self.mem_width, self.mem_depth, self.banks,
                      self.input_iterator_support, self.output_iterator_support,
@@ -323,15 +323,15 @@ class MemCore(ConfigurableCore):
         else:
             for j in range(self.interconnect_output_ports):
                 self.wire(self.ports[f"valid_out_{j}"][0], self.underlying.ports.valid_out[j])
-        self.wire(self.ports.empty[0], self.underlying.ports.empty[0])
-        self.wire(self.ports.full[0], self.underlying.ports.full[0])
+#        self.wire(self.ports.empty[0], self.underlying.ports.empty[0])
+#        self.wire(self.ports.full[0], self.underlying.ports.full[0])
 
         # PE core uses clk_en (essentially active low stall)
         self.stallInverter = FromMagma(mantle.DefineInvert(1))
         self.wire(self.stallInverter.ports.I, self.ports.stall)
         self.wire(self.stallInverter.ports.O[0], self.underlying.ports.clk_en[0])
 
-        self.wire(self.ports.sram_ready_out[0], self.underlying.ports.sram_ready_out[0])
+#        self.wire(self.ports.sram_ready_out[0], self.underlying.ports.sram_ready_out[0])
 
         # we have six? features in total
         # 0:    TILE
@@ -386,7 +386,7 @@ class MemCore(ConfigurableCore):
         # MEM Config
         configurations = [
             ("tile_en", 1),
-            ("fifo_ctrl_fifo_depth", 16),
+            #("fifo_ctrl_fifo_depth", 16),
             ("mode", 2),
         ]
 #            ("stencil_width", 16), NOT YET
@@ -399,8 +399,8 @@ class MemCore(ConfigurableCore):
         # TODO: Have lake spit this information out automatically from the wrapper
 
         for i in range(self.interconnect_input_ports):
-            configurations.append((f"strg_ub_agg_align_{i}_line_length", kts.clog2(self.max_line_length)))
-            configurations.append((f"strg_ub_agg_in_{i}_in_period", kts.clog2(self.input_max_port_sched)))
+#            configurations.append((f"strg_ub_agg_align_{i}_line_length", kts.clog2(self.max_line_length)))
+#            configurations.append((f"strg_ub_agg_in_{i}_in_period", kts.clog2(self.input_max_port_sched)))
 
             # num_bits_in_sched = kts.clog2(self.agg_height)
             # sched_per_feat = math.floor(self.config_data_width / num_bits_in_sched)
@@ -413,13 +413,13 @@ class MemCore(ConfigurableCore):
             #        num_here = self.input_max_port_sched - (k * sched_per_feat)
             #    merged_configs.append((f"strg_ub_agg_in_{i}_in_sched_merged_{k * sched_per_feat}",
             #                          num_here * num_bits_in_sched, num_here))
-            for j in range(self.input_max_port_sched):
-                configurations.append((f"strg_ub_agg_in_{i}_in_sched_{j}", kts.clog2(self.agg_height)))
+            #for j in range(self.input_max_port_sched):
+#                configurations.append((f"strg_ub_agg_in_{i}_in_sched_{j}", kts.clog2(self.agg_height)))
 
-            configurations.append((f"strg_ub_agg_in_{i}_out_period", kts.clog2(self.input_max_port_sched)))
+            #configurations.append((f"strg_ub_agg_in_{i}_out_period", kts.clog2(self.input_max_port_sched)))
 
-            for j in range(self.output_max_port_sched):
-                configurations.append((f"strg_ub_agg_in_{i}_out_sched_{j}", kts.clog2(self.agg_height)))
+            #for j in range(self.output_max_port_sched):
+#                configurations.append((f"strg_ub_agg_in_{i}_out_sched_{j}", kts.clog2(self.agg_height)))
 
             configurations.append((f"strg_ub_app_ctrl_write_depth_{i}", self.app_ctrl_depth_width))
 
@@ -439,29 +439,31 @@ class MemCore(ConfigurableCore):
                 configurations.append((f"strg_ub_output_addr_ctrl_address_gen_{i}_ranges_{j}", self.output_config_width))
                 configurations.append((f"strg_ub_output_addr_ctrl_address_gen_{i}_strides_{j}", self.output_config_width))
 
-            configurations.append((f"strg_ub_pre_fetch_{i}_input_latency", kts.clog2(self.max_prefetch) + 1))
-            configurations.append((f"strg_ub_sync_grp_sync_group_{i}", self.interconnect_output_ports))
+#            configurations.append((f"strg_ub_pre_fetch_{i}_input_latency", kts.clog2(self.max_prefetch) + 1))
+#            configurations.append((f"strg_ub_sync_grp_sync_group_{i}", self.interconnect_output_ports))
 
-            for j in range(self.num_tb):
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_dimensionality", 2))
-                num_indices_bits = 1 + kts.clog2(self.fw_int)
-                indices_per_feat = math.floor(self.config_data_width / num_indices_bits)
-                new_width = num_indices_bits * indices_per_feat
-                feat_num = 0
-                num_feats_merge = math.ceil(self.tb_range_inner_max / indices_per_feat)
-                for k in range(num_feats_merge):
-                    num_idx = indices_per_feat
-                    if (self.tb_range_inner_max - (k * indices_per_feat)) < indices_per_feat:
-                        num_idx = self.tb_range_inner_max - (k * indices_per_feat)
-                    merged_configs.append((f"strg_ub_tba_{i}_tb_{j}_indices_merged_{k * indices_per_feat}",
-                                           num_idx * num_indices_bits, num_idx))
+#            for j in range(self.num_tb):
+#                configurations.append((f"strg_ub_tba_{i}_tb_{j}_dimensionality", 2))
+#                num_indices_bits = 1 + kts.clog2(self.fw_int)
+#                indices_per_feat = math.floor(self.config_data_width / num_indices_bits)
+#                new_width = num_indices_bits * indices_per_feat
+#                feat_num = 0
+#                num_feats_merge = math.ceil(self.tb_range_inner_max / indices_per_feat)
+#                for k in range(num_feats_merge):
+#                    num_idx = indices_per_feat
+#                    if (self.tb_range_inner_max - (k * indices_per_feat)) < indices_per_feat:
+#                        num_idx = self.tb_range_inner_max - (k * indices_per_feat)
+#                    merged_configs.append((f"strg_ub_tba_{i}_tb_{j}_indices_merged_{k * indices_per_feat}",
+#                                           num_idx * num_indices_bits, num_idx))
+
+# originally commented
 #                for k in range(self.tb_range_inner_max):
 #                    configurations.append((f"strg_ub_tba_{i}_tb_{j}_indices_{k}", kts.clog2(self.fw_int) + 1))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_range_inner", kts.clog2(self.tb_range_inner_max)))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_range_outer", kts.clog2(self.tb_range_max)))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_stride", kts.clog2(self.max_tb_stride)))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_tb_height", max(1, kts.clog2(self.num_tb))))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_starting_addr", max(1, kts.clog2(self.fw_int))))
+#                configurations.append((f"strg_ub_tba_{i}_tb_{j}_range_inner", kts.clog2(self.tb_range_inner_max)))
+#                configurations.append((f"strg_ub_tba_{i}_tb_{j}_range_outer", kts.clog2(self.tb_range_max)))
+#                configurations.append((f"strg_ub_tba_{i}_tb_{j}_stride", kts.clog2(self.max_tb_stride)))
+#                configurations.append((f"strg_ub_tba_{i}_tb_{j}_tb_height", max(1, kts.clog2(self.num_tb))))
+#                configurations.append((f"strg_ub_tba_{i}_tb_{j}_starting_addr", max(1, kts.clog2(self.fw_int))))
 
         # Do all the stuff for the main config
         main_feature = self.__features[0]
@@ -497,8 +499,8 @@ class MemCore(ConfigurableCore):
             # port aliasing
             core_feature.ports["config_en"] = \
                 self.ports[f"config_en_{sram_index}"]
-            self.wire(core_feature.ports.read_config_data,
-                      self.underlying.ports[f"config_data_out_{sram_index}"])
+#            self.wire(core_feature.ports.read_config_data,
+#                      self.underlying.ports[f"config_data_out_{sram_index}"])
             # also need to wire the sram signal
             # the config enable is the OR of the rd+wr
             or_gate_en = FromMagma(mantle.DefineOr(2, 1))
