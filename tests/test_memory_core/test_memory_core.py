@@ -987,3 +987,105 @@ def test_multiple_input_ports_identity_stream_mult_aggs():
                                magma_output="coreir-verilog",
                                target="verilator",
                                flags=["-Wno-fatal"])
+
+
+def test_pond():
+    # Regular Bootstrap
+    [circuit, tester, MCore] = make_memory_core()
+
+    tester.poke(circuit.stall, 1)
+
+    tile_en = 1
+    depth = 1024
+    chunk = 128
+    startup_delay = 4
+    mode = Mode.DB
+
+    config_data = []
+
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_0_dimensionality"), 2, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_0_ranges_0"), 16, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_0_ranges_1"), 100, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_0_starting_addr"), 0, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_0_strides_0"), 1, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_0_strides_1"), 0, 0))
+
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_dimensionality"), 2, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_ranges_0"), 16, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_ranges_1"), 100, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_starting_addr"), 16, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_strides_0"), 0, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_strides_1"), 0, 0))
+
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_0_dimensionality"), 2, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_0_ranges_0"), 16, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_0_ranges_1"), 100, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_0_starting_addr"), 0, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_0_strides_0"), 1, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_0_strides_1"), 0, 0))
+
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_dimensionality"), 2, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_ranges_0"), 16, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_ranges_1"), 100, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_starting_addr"), 16, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_strides_0"), 0, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_strides_1"), 0, 0))
+
+    config_data.append((MCore.get_reg_index("strg_ub_sync_grp_sync_group_0"), 1, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_sync_grp_sync_group_1"), 2, 0))
+
+    # Configure
+    for addr, data, feat in config_data:
+        tester.configure(addr, data, feat)
+
+    tester.poke(circuit.stall, 0)
+    tester.eval()
+
+    data_in = [0] * interconnect_input_ports
+    valid_in = [0] * interconnect_input_ports
+    wen_en = 0
+    ren_en = 0
+    addr_in = 0
+    ren = 0
+
+    for i in range(32):
+        # Incrementing Data
+        if i < 12:
+            data_in[0] = data_in[0] + 1
+            valid_in[0] = 1
+            wen_en = 1
+            ren_en = 0
+            ren = 0
+        else:
+            data_in[0] = data_in[0] + 1
+            valid_in[0] = 1
+            wen_en = 3
+            ren_en = 3
+            ren = 3
+
+        tester.poke(circuit.addr_in, addr_in)
+        tester.poke(cicuit.wen_en, wen_en)
+        tester.poke(circuit.ren_en, ren_en)
+        tester.poke(circuit.ren, ren)
+
+        tester.eval()
+
+        if i >= 12:
+            data_in[1] = tester.circuit.data_out_0 + tester.circuit.data_out_1
+            valid_in[1] = tester.circuit.valid_out[1]
+
+        tester.poke(circuit.data_in_0, data_in[0])
+        tester.poke(circuit.data_in_1, data_in[1])
+        tester.poke(circuit.wen[0], valid_in[0])
+        tester.poke(circuit.wen[1], valid_in[1])
+
+        tester.eval()
+        tester.step(2)
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        for genesis_verilog in glob.glob("genesis_verif/*.*"):
+            shutil.copy(genesis_verilog, tempdir)
+        tester.compile_and_run(directory=tempdir,
+                               magma_output="coreir-verilog",
+                               target="verilator",
+                               flags=["-Wno-fatal"])
