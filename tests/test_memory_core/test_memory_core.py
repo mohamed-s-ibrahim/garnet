@@ -1087,3 +1087,6 @@ def test_pond():
                                magma_output="coreir-verilog",
                                target="verilator",
                                flags=["-Wno-fatal"])
+
+if __name__ == "__main__":
+    test_pond()
