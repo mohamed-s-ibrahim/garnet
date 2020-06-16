@@ -1062,7 +1062,7 @@ def test_pond():
             ren_en = 3
             ren = 3
 
-        tester.poke(cicuit.wen_en, wen_en)
+        tester.poke(circuit.wen_en, wen_en)
         tester.poke(circuit.ren_en, ren_en)
         tester.poke(circuit.ren, ren)
 

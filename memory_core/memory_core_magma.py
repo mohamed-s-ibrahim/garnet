@@ -340,6 +340,7 @@ class MemCore(ConfigurableCore):
         self.__features: List[CoreFeature] = [self]
         # Features 1-4: SRAM
         self.num_sram_features = lt_dut.total_sets
+        print("lt_dut.total_sets : ", lt_dut.total_sets)
         for sram_index in range(self.num_sram_features):
             core_feature = CoreFeature(self, sram_index + 1)
             self.__features.append(core_feature)
@@ -373,14 +374,15 @@ class MemCore(ConfigurableCore):
                   self.underlying.ports.config_data_in)
 
         # read data out
-        for idx, core_feature in enumerate(self.__features):
-            if(idx > 0):
-                # self.add_port(f"read_config_data_{idx}",
-                self.add_port(f"read_config_data_{idx}",
-                              magma.Out(magma.Bits[16]))
-                # port aliasing
-                core_feature.ports["read_config_data"] = \
-                    self.ports[f"read_config_data_{idx}"]
+       # for idx, core_feature in enumerate(self.__features):
+       #     print("idx: ", idx)
+       #     if(idx > 0):
+       #         # self.add_port(f"read_config_data_{idx}",
+       #         self.add_port(f"read_config_data_{idx}",
+       #                       magma.Out(magma.Bits[16]))
+       #         # port aliasing
+       #         core_feature.ports["read_config_data"] = \
+       #             self.ports[f"read_config_data_{idx}"]
 
         # MEM Config
         configurations = [
