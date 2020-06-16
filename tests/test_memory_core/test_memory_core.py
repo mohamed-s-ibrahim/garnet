@@ -1014,7 +1014,7 @@ def test_pond():
     config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_ranges_0"), 16, 0))
     config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_ranges_1"), 100, 0))
     config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_starting_addr"), 16, 0))
-    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_strides_0"), 0, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_strides_0"), 1, 0))
     config_data.append((MCore.get_reg_index("strg_ub_input_addr_ctrl_address_gen_1_strides_1"), 0, 0))
 
     config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_0_dimensionality"), 2, 0))
@@ -1028,7 +1028,7 @@ def test_pond():
     config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_ranges_0"), 16, 0))
     config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_ranges_1"), 100, 0))
     config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_starting_addr"), 16, 0))
-    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_strides_0"), 0, 0))
+    config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_strides_0"), 1, 0))
     config_data.append((MCore.get_reg_index("strg_ub_output_addr_ctrl_address_gen_1_strides_1"), 0, 0))
 
 #    config_data.append((MCore.get_reg_index("strg_ub_sync_grp_sync_group_0"), 1, 0))
@@ -1043,39 +1043,30 @@ def test_pond():
 
     data_in = [0] * 2
     valid_in = [0] * 2
-    wen_en = 0
-    en_en = 0
-    ren = 0
+    wen = [0] * 2
+    ren = [0] * 2
+    data_in[1] = 15
 
     for i in range(32):
-        # Incrementing Data
-        if i < 12:
-            data_in[0] = data_in[0] + 1
-            valid_in[0] = 1
-            wen_en = 1
-            ren_en = 0
-            ren = 0
-        else:
-            data_in[0] = data_in[0] + 1
-            valid_in[0] = 1
-            wen_en = 3
-            ren_en = 3
-            ren = 3
+        data_in[0] = data_in[0] + 1
+        data_in[1] = data_in[1] + 1
 
-        tester.poke(circuit.wen_en, wen_en)
-        tester.poke(circuit.ren_en, ren_en)
-        tester.poke(circuit.ren, ren)
+        wen = [1] * 2
 
-        tester.eval()
+        if i >= 16:
+            wen = [0] * 2
+            ren = [1] * 2
 
-        if i >= 12:
-            data_in[1] = tester.circuit.data_out_0 + tester.circuit.data_out_1
-            valid_in[1] = tester.circuit.valid_out[1]
+        tester.poke(circuit.ren_0, ren[0])
+        tester.poke(circuit.ren_1, ren[1])
 
         tester.poke(circuit.data_in_0, data_in[0])
         tester.poke(circuit.data_in_1, data_in[1])
-        tester.poke(circuit.wen[0], valid_in[0])
-        tester.poke(circuit.wen[1], valid_in[1])
+
+        #tester.poke(circuit.data_in_0, data_in[0])
+        #tester.poke(circuit.data_in_1, data_in[1])
+        tester.poke(circuit.wen_0, wen[0])
+        tester.poke(circuit.wen_1, wen[1])
 
         tester.eval()
         tester.step(2)

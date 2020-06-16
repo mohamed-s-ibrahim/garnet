@@ -374,15 +374,13 @@ class MemCore(ConfigurableCore):
                   self.underlying.ports.config_data_in)
 
         # read data out
-       # for idx, core_feature in enumerate(self.__features):
-       #     print("idx: ", idx)
-       #     if(idx > 0):
-       #         # self.add_port(f"read_config_data_{idx}",
-       #         self.add_port(f"read_config_data_{idx}",
-       #                       magma.Out(magma.Bits[16]))
-       #         # port aliasing
-       #         core_feature.ports["read_config_data"] = \
-       #             self.ports[f"read_config_data_{idx}"]
+        for idx, core_feature in enumerate(self.__features):
+            if(idx > 0):
+                self.add_port(f"read_config_data_{idx}",
+                              magma.Out(magma.Bits[16]))
+                # port aliasing
+                core_feature.ports["read_config_data"] = \
+                    self.ports[f"read_config_data_{idx}"]
 
         # MEM Config
         configurations = [
@@ -500,8 +498,8 @@ class MemCore(ConfigurableCore):
             # port aliasing
             core_feature.ports["config_en"] = \
                 self.ports[f"config_en_{sram_index}"]
-#            self.wire(core_feature.ports.read_config_data,
-#                      self.underlying.ports[f"config_data_out_{sram_index}"])
+            self.wire(core_feature.ports.read_config_data,
+                      self.underlying.ports[f"config_data_out"])#_{sram_index}"])
             # also need to wire the sram signal
             # the config enable is the OR of the rd+wr
             or_gate_en = FromMagma(mantle.DefineOr(2, 1))
@@ -615,11 +613,10 @@ class MemCore(ConfigurableCore):
             # for now config it as sram
             config_mem = [("tile_en", 1),
                           ("mode", 2),
-        #                  ("wen_0_reg_sel", 1),
+                          ("wen_0_reg_sel", 1),
                           ("wen_1_reg_sel", 1)]
             for name, v in config_mem:
                 configs = [(self.get_reg_index(name), v)] + configs
-        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
         print(configs)
         return configs
 
