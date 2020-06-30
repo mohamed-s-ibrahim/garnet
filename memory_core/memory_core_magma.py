@@ -90,7 +90,7 @@ class MemCore(ConfigurableCore):
                  tb_iterator_support=2,
                  multiwrite=1,
                  max_prefetch=64,
-                 config_data_width=16,
+                 config_data_width=32,
                  config_addr_width=8,
                  remove_tb=True,
                  fifo_mode=False,
