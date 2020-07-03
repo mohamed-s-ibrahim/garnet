@@ -498,7 +498,7 @@ class MemCore(ConfigurableCore):
             configurations.append((f"strg_ub_rate_matched_{i}", 1 + kts.clog2(self.interconnect_input_ports)))
 
             for j in range(self.num_tb):
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_dimensionality", 2))
+                configurations.append((f"strg_ub_tb_{j}_dimensionality", 2))
                 num_indices_bits = 1 + kts.clog2(self.fw_int)
                 indices_per_feat = math.floor(self.config_data_width / num_indices_bits)
                 new_width = num_indices_bits * indices_per_feat
@@ -508,15 +508,15 @@ class MemCore(ConfigurableCore):
                     num_idx = indices_per_feat
                     if (self.tb_range_inner_max - (k * indices_per_feat)) < indices_per_feat:
                         num_idx = self.tb_range_inner_max - (k * indices_per_feat)
-                    merged_configs.append((f"strg_ub_tba_{i}_tb_{j}_indices_merged_{k * indices_per_feat}",
+                    merged_configs.append((f"strg_ub_tb_{j}_indices_merged_{k * indices_per_feat}",
                                            num_idx * num_indices_bits, num_idx))
 #                for k in range(self.tb_range_inner_max):
-#                    configurations.append((f"strg_ub_tba_{i}_tb_{j}_indices_{k}", kts.clog2(self.fw_int) + 1))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_range_inner", kts.clog2(self.tb_range_inner_max)))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_range_outer", kts.clog2(self.tb_range_max)))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_stride", kts.clog2(self.max_tb_stride)))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_tb_height", max(1, kts.clog2(self.num_tb))))
-                configurations.append((f"strg_ub_tba_{i}_tb_{j}_starting_addr", max(1, kts.clog2(self.fw_int))))
+#                    configurations.append((f"strg_ub_tb_{j}_indices_{k}", kts.clog2(self.fw_int) + 1))
+                configurations.append((f"strg_ub_tb_{j}_range_inner", kts.clog2(self.tb_range_inner_max)))
+                configurations.append((f"strg_ub_tb_{j}_range_outer", kts.clog2(self.tb_range_max)))
+                configurations.append((f"strg_ub_tb_{j}_stride", kts.clog2(self.max_tb_stride)))
+                configurations.append((f"strg_ub_tb_{j}_tb_height", max(1, kts.clog2(self.num_tb))))
+                configurations.append((f"strg_ub_tb_{j}_starting_addr", max(1, kts.clog2(self.fw_int))))
 
         # Do all the stuff for the main config
         main_feature = self.__features[0]
@@ -639,14 +639,14 @@ class MemCore(ConfigurableCore):
                    ("strg_ub_output_addr_ctrl_address_gen_0_strides_0", 1),
                    ("strg_ub_output_addr_ctrl_address_gen_0_strides_1", 512),
                    ("strg_ub_sync_grp_sync_group_0", 1),
-                   ("strg_ub_tba_0_tb_0_range_outer", depth),
-                   ("strg_ub_tba_0_tb_0_starting_addr", 0),
-                   ("strg_ub_tba_0_tb_0_stride", 1),
-                   ("strg_ub_tba_0_tb_0_dimensionality", 1),
+                   ("strg_ub_tb_0_range_outer", depth),
+                   ("strg_ub_tb_0_starting_addr", 0),
+                   ("strg_ub_tb_0_stride", 1),
+                   ("strg_ub_tb_0_dimensionality", 1),
                    ("strg_ub_agg_align_0_line_length", depth),
-                   ("strg_ub_tba_0_tb_0_indices_merged_0", (0 << 0) | (1 << 3) | (2 << 6) | (3 << 9)),
-                   ("strg_ub_tba_0_tb_0_range_inner", 4),
-                   ("strg_ub_tba_0_tb_0_tb_height", 1),
+                   ("strg_ub_tb_0_indices_merged_0", (0 << 0) | (1 << 3) | (2 << 6) | (3 << 9)),
+                   ("strg_ub_tb_0_range_inner", 4),
+                   ("strg_ub_tb_0_tb_height", 1),
                    ("strg_ub_rate_matched_0", 1),
                    ("tile_en", 1),
                    ("mode", 0),
