@@ -497,7 +497,8 @@ class MemCore(ConfigurableCore):
             configurations.append((f"strg_ub_sync_grp_sync_group_{i}", self.interconnect_output_ports))
             configurations.append((f"strg_ub_rate_matched_{i}", 1 + kts.clog2(self.interconnect_input_ports)))
 
-            for j in range(self.num_tb):
+            for j_ in range(self.num_tb):
+                j = i
                 configurations.append((f"strg_ub_tb_{j}_dimensionality", 2))
                 num_indices_bits = 1 + kts.clog2(self.fw_int)
                 indices_per_feat = math.floor(self.config_data_width / num_indices_bits)
