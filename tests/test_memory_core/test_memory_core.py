@@ -200,13 +200,12 @@ def test_multiple_output_ports():
         tester.step(2)
 
     with tempfile.TemporaryDirectory() as tempdir:
-        tempdir="area"
         for genesis_verilog in glob.glob("genesis_verif/*.*"):
             shutil.copy(genesis_verilog, tempdir)
         tester.compile_and_run(directory=tempdir,
                                magma_output="coreir-verilog",
                                target="verilator",
-                               flags=["-Wno-fatal", "--trace"])
+                               flags=["-Wno-fatal"])
 
 
 def test_multiple_output_ports_conv():
