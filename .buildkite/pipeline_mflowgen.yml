@@ -5,7 +5,7 @@ steps:
   agents: { jobsize: "hours" }
   commands:
   - test=mflowgen/test/test_module.sh
-  - $$test full_chip tile_array rtl --debug
+  - $$test full_chip tile_array --steps rtl --debug
 
 
 # 
