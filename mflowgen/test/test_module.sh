@@ -390,6 +390,12 @@ for step in ${build_sequence[@]}; do
     make -n $step > /dev/null || PASS ; # Get error messages, if any, maybe.
     make -n $step | grep 'mkdir.*output' | sed 's/.output.*//' | sed 's/mkdir -p/  make/' || PASS
 
+    echo "+++ TMPDIR=$TMPDIR"
+    set -x
+    printenv | grep TMPDIR
+    set +x
+    exit
+
     echo "--- ......MAKE $step (`date +'%a %H:%M'`)"
 
     # Use filters to make buildkite log more readable/useful
