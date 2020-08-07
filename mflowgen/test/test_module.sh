@@ -245,16 +245,23 @@ $garnet/bin/requirements_check.sh -v --debug --pd_only
 
 ########################################################################
 # Make a build space for mflowgen; clone mflowgen
-echo "--- CLONE MFLOWGEN REPO"
+echo "--- CLONE *AND INSTALL* MFLOWGEN REPO"
 [ "$VERBOSE" == "true" ] && (echo ""; echo "--- pwd="`pwd`; echo "")
 if [ "$USER" == "buildkite-agent" ]; then
     build=$garnet/mflowgen/test
 else
     build=/sim/$USER
 fi
+
+# CLONE
 test  -d $build || mkdir $build; cd $build
 test  -d $build/mflowgen || git clone https://github.com/cornell-brg/mflowgen.git
 mflowgen=$build/mflowgen
+
+# INSTALL
+pushd $mflowgen
+  TOP=$PWD; pip install -e .; which mflowgen; pip list | grep mflowgen
+popd
 echo ""
 
 ########################################################################
@@ -389,12 +396,6 @@ for step in ${build_sequence[@]}; do
     echo "+++ ......TODO list for step $step (`date +'%a %H:%M'`)"
     make -n $step > /dev/null || PASS ; # Get error messages, if any, maybe.
     make -n $step | grep 'mkdir.*output' | sed 's/.output.*//' | sed 's/mkdir -p/  make/' || PASS
-
-    echo "+++ TMPDIR=$TMPDIR"
-    set -x
-    printenv | grep TMPDIR
-    set +x
-    exit
 
     echo "--- ......MAKE $step (`date +'%a %H:%M'`)"
 

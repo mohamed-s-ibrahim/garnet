@@ -1,33 +1,22 @@
 steps:
 
-# Debugging rtl problems maybe
-- label: 'rtl debug'
+########################################################################
+- label: 'MemCore synth 17m'
   agents: { jobsize: "hours" }
   commands:
   - test=mflowgen/test/test_module.sh
-  - $$test full_chip tile_array --steps rtl --debug
+  - $$test full_chip tile_array Tile_MemCore --steps synthesis --debug
+
+- wait: ~
+  continue_on_failure: true
 
 
-# 
-# 
-# 
-# ########################################################################
-# - label: 'MemCore synth 17m'
-#   agents: { jobsize: "hours" }
-#   commands:
-#   - test=mflowgen/test/test_module.sh
-#   - $$test full_chip tile_array Tile_MemCore --steps synthesis --debug
-# 
-# - wait: ~
-#   continue_on_failure: true
-# 
-# 
-# ########################################################################
-# - label: 'PE synth 23m'
-#   agents: { jobsize: "hours" }
-#   commands:
-#   - test=mflowgen/test/test_module.sh
-#   - $$test full_chip tile_array Tile_PE --steps synthesis --debug
-# 
-# - wait: ~
-#   continue_on_failure: true
+########################################################################
+- label: 'PE synth 23m'
+  agents: { jobsize: "hours" }
+  commands:
+  - test=mflowgen/test/test_module.sh
+  - $$test full_chip tile_array Tile_PE --steps synthesis --debug
+
+- wait: ~
+  continue_on_failure: true
