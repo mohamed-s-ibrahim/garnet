@@ -4,7 +4,7 @@ from peak_core.peak_core import PeakCore
 
 from peak.family import PyFamily
 from lassen.sim import PE_fc
-from lassen.asm import (add, Mode_t, lut_and, inst, ALU_t,
+from lassen.asm import (add, lut_and, inst, ALU_t,
                         umult0, fp_mul, fp_add,
                         fcnvexp2f, fcnvsint2f, fcnvuint2f)
 from lassen.common import BFloat16_fc
@@ -27,7 +27,7 @@ def dw_files():
     return result_filenames
 
 
-def test_pe_config(dw_files):
+def test_pe_op(dw_files):
     core = PeakCore(PE_fc)
     core.name = lambda: "PECore"
     circuit = core.circuit()
@@ -37,10 +37,8 @@ def test_pe_config(dw_files):
     tester.reset()
 
     tester.poke(circuit.interface["stall"], 1)
-    config_data = core.get_config_bitstream(add(ra_mode=Mode_t.DELAY,
-                                                rb_mode=Mode_t.DELAY))
-    # hacky way to configure it as 0x42 + 0x42 from the operand register
-    config_data += [(3, 0x42 << 16 | 0x42)]
+    config_data = core.get_config_bitstream(lut_and())
+
     for addr, data in config_data:
         print("{0:08X} {1:08X}".format(addr, data))
         tester.configure(addr, data)
@@ -48,24 +46,17 @@ def test_pe_config(dw_files):
         tester.eval()
         tester.expect(circuit.read_config_data, data)
 
-    for i in range(10):
-        tester.poke(circuit.interface["data0"], i + 1)
-        tester.poke(circuit.interface["data1"], i + 1)
-        tester.eval()
-        tester.expect(circuit.interface["alu_res"], 0x42 + 0x42)
-
-    tester.reset()
-    lut_val = lut_and().lut
-
-    config_data = core.get_config_bitstream(inst(alu=ALU_t.Add, lut=lut_val,
-                                                 rd_mode=Mode_t.DELAY,
-                                                 re_mode=Mode_t.DELAY,
-                                                 rf_mode=Mode_t.DELAY))
-    config_data += [(4, 0x7)]
-    tester.poke(circuit.interface["bit0"], 0)
-    tester.poke(circuit.interface["bit1"], 0)
+    tester.poke(circuit.interface["data0"], 0x42)
+    tester.poke(circuit.interface["data1"], 0x42)
+    tester.poke(circuit.interface["bit0"], 0x1)
+    tester.poke(circuit.interface["bit1"], 0x1)
+    tester.poke(circuit.interface["bit2"], 0x1)
     tester.eval()
-    tester.expect(circuit.interface["res_p"], 1)
+    tester.expect(circuit.interface["alu_res"], 0x42 + 0x42)
+    tester.expect(circuit.interface["res_p"], 0x1)
+
+    
+
 
     with tempfile.TemporaryDirectory() as tempdir:
         for filename in dw_files:
@@ -130,7 +121,7 @@ def test_pe_data_gate(op, dw_files):
             tester.poke(circuit.data0, a)
             tester.poke(circuit.data1, b)
             tester.eval()
-            expected, _, _ = core.wrapper.model(instr, a, b)
+            expected, _ = core.wrapper.model(instr, a, b)
             tester.expect(circuit.alu_res, expected)
             for other_fu_i in other_fu:
                 tester.expect(other_fu_i.I0, 0)
