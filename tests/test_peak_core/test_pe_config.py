@@ -3,11 +3,17 @@ from gemstone.common.run_verilog_sim import irun_available
 from peak_core.peak_core import PeakCore
 
 from peak.family import PyFamily
+from peak import family
 from lassen.sim import PE_fc
 from lassen.asm import (add, lut_and, inst, ALU_t,
                         umult0, fp_mul, fp_add,
                         fcnvexp2f, fcnvsint2f, fcnvuint2f)
 from lassen.common import BFloat16_fc
+
+from peak_gen.arch import read_arch
+from peak_gen.asm import asm_arch_closure
+from peak_gen.peak_wrapper import wrapped_peak_class
+
 import hwtypes
 import shutil
 import tempfile
@@ -67,6 +73,44 @@ def test_pe_op(dw_files):
                                directory=tempdir,
                                flags=["-Wno-fatal"])
 
+def test_non_lassen_pe_op(dw_files):
+
+    arch = read_arch(str("../peak_generator/examples/misc_tests/test_alu.json"))
+    PE_wrapped_fc = wrapped_peak_class(arch)
+
+    inst_gen = asm_arch_closure(arch)(family.PyFamily())
+
+    core = PeakCore(PE_wrapped_fc)
+    core.name = lambda: "PECore"
+    circuit = core.circuit()
+
+    # random test stuff
+    tester = BasicTester(circuit, circuit.clk, circuit.reset)
+    tester.reset()
+
+    tester.poke(circuit.interface["stall"], 1)
+    config_data = core.get_config_bitstream(inst_gen())
+
+    for addr, data in config_data:
+        print("{0:08X} {1:08X}".format(addr, data))
+        tester.configure(addr, data)
+        tester.config_read(addr)
+        tester.eval()
+        tester.expect(circuit.read_config_data, data)
+
+    tester.poke(circuit.interface["inputs0"], 0x42)
+    tester.poke(circuit.interface["inputs1"], 0x42)
+    tester.eval()
+    tester.expect(circuit.interface["pe_outputs_0"], 0x42 + 0x42)
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        for filename in dw_files:
+            shutil.copy(filename, tempdir)
+        tester.compile_and_run(target="verilator",
+                               magma_output="coreir-verilog",
+                               magma_opts={"coreir_libs": {"float_DW"}},
+                               directory=tempdir,
+                               flags=["-Wno-fatal"])
 
 def _make_random(cls):
     if issubclass(cls, hwtypes.BitVector):

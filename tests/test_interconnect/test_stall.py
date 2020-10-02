@@ -28,7 +28,7 @@ def dw_files():
         result_filenames.append(filename)
     return result_filenames
 
-
+@pytest.mark.skip()
 def test_stall(dw_files, io_sides):
     chip_size = 2
     depth = 10

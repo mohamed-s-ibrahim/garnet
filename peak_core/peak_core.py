@@ -104,7 +104,11 @@ class PeakCore(ConfigurableCore):
                 my_port = self.ports[name]
                 if magma_type is magma.Bits[1]:
                     my_port = my_port[0]
-                magma_name = name if dir_ is magma.In else f"O{i}"
+                if len(ports) == 1:
+                    magma_name = name if dir_ is magma.In else f"O"
+                else:
+                    magma_name = name if dir_ is magma.In else f"O{i}"
+                # magma_name = name if dir_ is magma.In else f"O{i}"
                 self.wire(my_port, self.peak_circuit.ports[magma_name])
 
         self.add_ports(
@@ -141,7 +145,7 @@ class PeakCore(ConfigurableCore):
         self._setup_config()
 
     def get_config_bitstream(self, instr):
-        assert isinstance(instr, self.wrapper.instruction_type())
+        # assert isinstance(instr, self.wrapper.instruction_type())
         config = self.wrapper.assemble(instr)
         config_width = self.wrapper.instruction_width()
         num_config = math.ceil(config_width / 32)
