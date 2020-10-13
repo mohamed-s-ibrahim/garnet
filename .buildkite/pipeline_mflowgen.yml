@@ -1,4 +1,5 @@
 # agents: { jobsize: "hours" }
+agents: { queue: "papers" }
 
 env:
   TEST: mflowgen/test/test_module.sh
