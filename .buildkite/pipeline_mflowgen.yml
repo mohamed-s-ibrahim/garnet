@@ -3,14 +3,14 @@ agents: { queue: "papers" }
 
 env:
   TEST: mflowgen/test/test_module.sh
-  CMD: echo foo | sed s/foo/fobo/
+  CMD: 'echo foo | sed s/foo/fobo/'
   
 
 steps:
 
 - label: test
   commands:
-  - $$CMD
+  - set -x; $CMD
   - exit 13
 
 
