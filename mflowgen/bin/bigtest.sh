@@ -87,8 +87,8 @@ echo ""
 ########################################################################
 # Find global CI log dir responsible for coordinating all the builds,
 # e.g. "/build/CI/full_chip.HIST"
-build=full_chip
-logdir=$ci_dir/$build.HIST ; # E.g. "/build/CI/full_chip.HIST"
+design=full_chip
+logdir=$ci_dir/$design.HIST ; # E.g. "/build/CI/full_chip.HIST"
 if ! (test -d $logdir && test -w $logdir); then
     echo "**ERROR: logdir $logdir not found or not writeable"
     echo "Maybe you should do: mkdir -p $logdir"
@@ -102,15 +102,15 @@ if [ "$ACTION" == "new" ]; then
 
     # E.g. logdir=/tmp/deleteme.buildchip.CI/full_chip.HIST
     pushd $logdir
-      n=$(\ls -d $build.* |& \egrep "^$build.[0-9]*" | # full_chip.{0,1,83,112...}
-        sed "s|^$build.||" |                           # {0,1,83,112...}
-        sort -n | tail -1)                             # 112
+      n=$(\ls -d $design.* |& \egrep "^$design.[0-9]*" | # full_chip.{0,1,83,112...}
+        sed "s|^$design.||" |                            # {0,1,83,112...}
+        sort -n | tail -1)                               # 112
       echo $n
     popd
 
     # E.g. build='full_chip.113'
-    build=$build.0
-    [ "$n" ] && build=$build.$((n+1))   # E.g. 'full_chip.14'
+    build=$design.0
+    [ "$n" ] && build=$design.$((n+1))   # E.g. 'full_chip.14'
 
     log=$logdir/$build        # E.g. '/build/CI/full_chip.HIST/full_chip.14'
     build_dir=$ci_dir/$build  # E.g. '/build/full_chip.HIST/full_chip.14'
@@ -141,9 +141,9 @@ elif  [ "$ACTION" == "old" ]; then
     #    bt --retry 7
 
     build_num=` expr $build_dir : '^[^0-9]*\([0-9]*\)'` ; # E.g. "7"
-    build=$build.$build_num   ; # E.g. 'full_chip.7'
-    log=$logdir/$build        ; # E.g. '/build/CI/full_chip.HIST/full_chip.7'
-    build_dir=$ci_dir/$build  ; # E.g. '/build/full_chip.HIST/full_chip.7'
+    build=$design.$build_num   ; # E.g. 'full_chip.7'
+    log=$logdir/$build         ; # E.g. '/build/CI/full_chip.HIST/full_chip.7'
+    build_dir=$ci_dir/$build   ; # E.g. '/build/full_chip.HIST/full_chip.7'
 
     # basename $build_dir -- to find "full_chip.7"
     # log=$logdir/full_chip.7 or something
@@ -197,6 +197,57 @@ c; log=bc.log.$((i++)); echo "less $log"; bt |& tee $log
 bt --retry /tmp/deleteme.buildchip.CI/full_chip.7
 bt --retry full_chip.7
 bt --retry 7
+
+# UNIT TESTS on arm7
+
+garnet=/sim/steveri/soc/components/cgra/garnet
+alias bt='$garnet/mflowgen/bin/bigtest.sh'
+
+# (as steveri)
+(cd $garnet; git pull)
+(cd $garnet; git branch)
+(cd $garnet; git checkout civde2)
+
+bt --help
+
+cd /build/CI
+i=0
+
+c; log=bc.log.$((i++)); echo "less $log"; bt |& tee $log
+
+# DONE sourcing '/sim/steveri/soc/components/cgra/garnet/mflowgen/bin/setup-buildkite.sh' ...
+# Checking out last known good version #adad99d
+# fatal: Unable to create '/sim/steveri/soc/.git/modules/components/cgra/garnet/index.lock': Permission denied
+# fatal: Not a git repository (or any parent up to mount point /build)
+
+
+
+
+
+
+
+
+
+
+
+
+bt --retry /tmp/deleteme.buildchip.CI/full_chip.7
+bt --retry full_chip.7
+bt --retry 7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

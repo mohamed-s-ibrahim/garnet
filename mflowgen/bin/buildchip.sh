@@ -123,6 +123,7 @@ function setup_CI {
     source $script_home/setup-buildkite.sh \
       --dir $build_dir --need_space 100G || exit 13
     echo "DONE sourcing '$script_home/setup-buildkite.sh' ..."
+    echo ""
 
     garnet=$GARNET_HOME
 
@@ -282,10 +283,13 @@ if [ "$ACTION" == "new" ]; then
 
 
 
-        # FIXME this is just temporary, right?
-        echo "Checking out last known good version #adad99d"
-        (cd $GARNET_HOME; git checkout adad99d)
-        git log | head
+# ERROR cannot do this if running as buildkite-agent
+#         # FIXME this is just temporary, right?
+#         echo "Checking out last known good version #adad99d"
+#         (cd $GARNET_HOME; git checkout adad99d)
+#         git log | head
+
+
 
         ########################################################################
         echo "Initialize the design"
