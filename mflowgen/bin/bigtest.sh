@@ -7,7 +7,6 @@ scriptdir=${0%/*} ; # Similar to csh $0:h
 [ "$scriptdir" == "$0" ] && scriptdir="."
 script_home=`cd $scriptdir; pwd`
 
-
 ########################################################################
 # Default ci_dir for each host
 
@@ -19,7 +18,6 @@ if [ `hostname` == "kiwi" ]; then
     ci_dir=/tmp/deleteme.buildchip.CI
     test -e $ci_dir || mkdir -p $ci_dir
 fi
-
 
 ########################################################################
 # HELP
@@ -33,25 +31,20 @@ Usage:
    $cmd [ --retry <dir> ]
 
 CI build directory:
-   kiwi: /tmp/deleteme.buildchip.CI/full_chip.<n>
-   vde:  /proj/forward/CI/full_chip.<n>
-   arm7: /build/CI/full_chip.<n>
-
-CI build history:
-   kiwi: /tmp/deleteme.buildchip.CI/full_chip.HIST
-   vde:  /proj/forward/CI/full_chip.HIST
-   arm7: /build/CI/full_chip.HIST
+   kiwi: /tmp/deleteme.buildchip.CI/full_chip/build.<n>
+   vde:  /proj/forward/CI/full_chip/build.<n>
+   arm7: /build/CI/full_chip/build.<n>
 
 Options:
     '--retry <dir>' attempts to restart an existing failed build <dir>
     (Aliases for --retry include --restart, --continue, --cont ...)
 
 Examples:
-   # Build full_chip in e.g. new dir "/build/CI/full_chip.23"
+   # Build full_chip in e.g. new dir "/build/CI/full_chip/build.23"
    $cmd
 
-   # Retry failed build in dir "/build/CI/full_chip.117"
-   $cmd --retry /build/CI/full_chip.117
+   # Retry failed build in dir "/build/CI/full_chip/build.117"
+   $cmd --retry /build/CI/full_chip/build.117
 
 EOF
 }
@@ -88,62 +81,66 @@ echo ""
 # Find global CI log dir responsible for coordinating all the builds,
 # e.g. "/build/CI/full_chip.HIST"
 design=full_chip
-logdir=$ci_dir/$design.HIST ; # E.g. "/build/CI/full_chip.HIST"
-if ! (test -d $logdir && test -w $logdir); then
-    echo "**ERROR: logdir $logdir not found or not writeable"
-    echo "Maybe you should do: mkdir -p $logdir"
-    exit 13
-fi
 
 if [ "$ACTION" == "new" ]; then
 
     ########################################################################
-    # Use history in global logdir to find next-seq no. for this new build
+    # Look at existing builds to find next-seq no. for this new build
 
-    # E.g. logdir=/tmp/deleteme.buildchip.CI/full_chip.HIST
-    pushd $logdir
-      n=$(\ls -d $design.* |& \egrep "^$design.[0-9]*" | # full_chip.{0,1,83,112...}
-        sed "s|^$design.||" |                            # {0,1,83,112...}
-        sort -n | tail -1)                               # 112
+    # E.g. $ci_dir/$design=/build/CI/full_chip
+    if ! test -e $ci_dir/$design; then
+        echo "WARNING did not find design dir '$ci_dir/$design'"
+        echo "Is this your first time?"
+        echo "I will build it for you..."
+        echo "    mkdir -p $ci_dir/$design"; mkdir -p $ci_dir/$design
+    fi
+
+    # E.g. ls $ci_dir/$design => build.0,build.1...
+    pushd $ci_dir/$design >& /dev/null
+      n=$(\ls -d build.* |& \egrep "^build.[0-9]*" | # build.{0,1,83,112...}
+        sed "s|^$design.||" |                        # {0,1,83,112...}
+        sort -n | tail -1)                           # 112
       echo $n
-    popd
+    popd >& /dev/null
 
-    # E.g. build='full_chip.113'
-    build=$design.0
-    [ "$n" ] && build=$design.$((n+1))   # E.g. 'full_chip.14'
+    # E.g. build='build.113'
+    build=build.0
+    [ "$n" ] && build=build.$((n+1))   # E.g. 'build.14'
 
-    log=$logdir/$build        # E.g. '/build/CI/full_chip.HIST/full_chip.14'
-    build_dir=$ci_dir/$build  # E.g. '/build/full_chip.HIST/full_chip.14'
-
+    build_dir=$ci_dir/$design/$build  # E.g. '/build/CI/full_chip/build.14'
+    if test -e $build_dir; then
+        echo "WARNING '$build_dir' already exists (it shouldn't)."
+    else
+        mkdir -p $build_dir
+    fi
+    
     ########################################################################
     # Build the chip
+    log=$build_dir/buildchip.log  
 
     echo ""
     echo "Calling subcommand:"
     echo "    buildchip.sh --new $build_dir \\"
-    echo "        |& tee $log"; echo ""
+    echo "        |& tee -a $log"; echo ""
 
     ########################################################################
-    # $garnet/mflowgen/bin/buildchip.sh --new $build_dir |& tee $log
-    $script_home/buildchip.sh --new $build_dir |& tee $log
+    echo '----------------------------------------' >> $log
+    printf "`date`\n\n" >> $log
+    $script_home/buildchip.sh --new $build_dir |& tee -a $log
     ########################################################################
 
 elif  [ "$ACTION" == "old" ]; then
 
-    # FIXME should maybe check and err if `basename $build_dir` != $ci_dir
-    # either here or above
-    # if [ "$ACTION" == "old" ]; then ci_dir=$(dirname $build_dir)
-
     # build_dir should have been specified on command line
-    # FIXME/TODO could be specified as one of
-    #    bt --retry /tmp/deleteme.buildchip.CI/full_chip.7
-    #    bt --retry full_chip.7
+    # FIXME/TODO add to usage / help:
+    # build_dir can be specified as one of three ways
+    #    bt --retry /tmp/deleteme.buildchip.CI/full_chip/build.7
+    #    bt --retry build.7
     #    bt --retry 7
 
     build_num=` expr $build_dir : '^[^0-9]*\([0-9]*\)'` ; # E.g. "7"
-    build=$design.$build_num   ; # E.g. 'full_chip.7'
-    log=$logdir/$build         ; # E.g. '/build/CI/full_chip.HIST/full_chip.7'
-    build_dir=$ci_dir/$build   ; # E.g. '/build/full_chip.HIST/full_chip.7'
+    build=build.$build_num            ; # E.g. 'build.7'
+    build_dir=$ci_dir/$design/$build  ; # E.g. '/build/CI/full_chip/build.7'
 
     # basename $build_dir -- to find "full_chip.7"
     # log=$logdir/full_chip.7 or something
@@ -154,34 +151,22 @@ elif  [ "$ACTION" == "old" ]; then
     fi
     
     ########################################################################
-    $script_home/buildchip.sh --retry $build_dir |& tee $log
+    # (Re)build the chip
+    log=$build_dir/buildchip.log  
+    echo ""
+    echo "Calling subcommand:"
+    echo "    buildchip.sh --retry $build_dir \\"
+    echo "        |& tee -a $log"; echo ""
+
+    ########################################################################
+    echo '----------------------------------------' >> $log
+    printf "`date`\n\n" >> $log
+    $script_home/buildchip.sh --retry $build_dir |& tee -a $log
     ########################################################################
 fi
 
 exit
 
-# echo FOO; exit
-
-
-# # If no existing dir specified, build a new dir 'full_chip.<n>'
-# if [ "$1" == "--restart" ]; then
-#     if [ "$2" == "" ]; then echo ERROR; exit 13; fi
-#     build_dir=$2
-#     echo "Building in existing dir '$build_dir'"
-# else
-#     # Build a new directory $CI/full_chip.<n>
-#     CI=/proj/forward/CI
-#     build_dir=`get_next_name $CI/build`
-#     mkdir -p $build_dir
-#     echo "Building in new dir '$build_dir'"
-# fi
-# 
-# cd $build_dir
-
-$garnet/mflowgen/bin/buildchip.sh
-
-
-exit
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -192,7 +177,7 @@ alias bt='/nobackup/steveri/github/garnet/mflowgen/bin/bigtest.sh'
 cd /tmp/deleteme.buildchip.CI
 i=0
 
-c; log=bc.log.$((i++)); echo "less $log"; bt |& tee $log
+c; log=bt.log.$((i++)); echo "less $log"; bt |& tee $log
 
 bt --retry /tmp/deleteme.buildchip.CI/full_chip.7
 bt --retry full_chip.7
@@ -213,35 +198,12 @@ bt --help
 cd /build/CI
 i=0
 
-c; log=bc.log.$((i++)); echo "less $log"; bt |& tee $log
+c; log=bt.log.$((i++)); echo "less $log"; bt |& tee $log
 
 # DONE sourcing '/sim/steveri/soc/components/cgra/garnet/mflowgen/bin/setup-buildkite.sh' ...
 # Checking out last known good version #adad99d
 # fatal: Unable to create '/sim/steveri/soc/.git/modules/components/cgra/garnet/index.lock': Permission denied
 # fatal: Not a git repository (or any parent up to mount point /build)
-
-
-
-
-
-
-
-
-
-
-
-
-bt --retry /tmp/deleteme.buildchip.CI/full_chip.7
-bt --retry full_chip.7
-bt --retry 7
-
-
-
-
-
-
-
-
 
 
 
@@ -302,19 +264,6 @@ ls /tmp/deleteme.buildchip.CI/full_chip.HIST
 
 
 
-bc |& tee bc.log
-#     make rtl                            >& logs.08/make-rtl.log
-#     make tile_array                     >& logs.08/make-tile_array.log
-#     make glb_top                        >& logs.08/make-glb_top.log
-#     ...
-#     make mentor-calibre-lvs             >& logs.08/make-lvs.log
-#     **ERROR: Failed in LVS
-logdir=logs.09
-(for l in `ls -rt $logdir`; do cat $logdir/$l; done)
-
-bc --new /tmp/deleteme
-
-
 fi
 
 
@@ -359,112 +308,6 @@ fi
 #                
 # [ "$MFLOWGEN_HOME" ] || export MFLOWGEN_HOME=$mdefault
 # echo "Using MFLOWGEN_HOME='$MFLOWGEN_HOME'"
-
-########################################################################
-# DELETEME
-
-    # Maybe build numbers are coordinated by a world-writable build-manager directory
-    # full of build logs e.g. /build/buildchip_logs/{full_chip.0,full_chip.1,full_chip.2...}
-
-#     logdir=/proj/forward/CI/full_chip.HIST ;  # For VDE
-#     [ `hostname` == "r7arm-aha" ] && logdir=/build/CI/full_chip.HIST ; # for ARM
-# 
-#     # kiwi is for debugging the script
-#     if [ `hostname` == "kiwi" ]; then
-#         logdir=/tmp/deleteme.buildchip.CI/full_chip.HIST
-#         test -e $logdir || mkdir $logdir
-#     fi
-    
-
-########################################################################
-# Now done by 'buildchip'
-# 
-#     # echo `date` $build | tee $log
-#     # Remember, if we get this far we're already logging to $log (see 'exec' above)
-#     echo `date` $build
-#     echo "Initiating new build in dir '$build_dir'"
-#     echo mkdir -p $build_dir; mkdir -p $build_dir
-#     echo cd       $build_dir; cd       $build_dir
-#     echo "Log file = '$log'"
-# 
-#     # kiwi is for debugging the script
-#     if [ `hostname` == "kiwi" ]; then
-#         echo "okay we're debugged already"; exit
-#     fi
-# 
-# 
-#     ########################################################################
-#     # Build the chip, with output to the log.
-#     # Set pipefail so we get the correct exit status.
-# 
-#     if [ `hostname` == "r7arm-aha" ]; then
-# 
-#         if ! [ "$USER" == "buildkite-agent" ]; then
-#             echo "**ERROR: you are not buildkite-agent, this will not work"
-#             exit 13
-#         fi
-# 
-#         # Do I want to do this?
-#         # FIXME if we're gonna do it, we should do it up at the top
-#         if [ "$GARNET_HOME" ]; then
-#             echo "Found existing GARNET_HOME='$GARNET_HOME'; hope that's correct...!"
-#         else
-#             function where_this_script_lives {
-#                 s=${BASH_SOURCE[0]}
-#                 scriptpath=$s      # E.g. "build_tarfile.sh" or "foo/bar/build_tarfile.sh"
-#                 scriptdir=${s%/*}  # E.g. "build_tarfile.sh" or "foo/bar"
-#                 if test "$scriptdir" == "$scriptpath"; then scriptdir="."; fi
-#                 # scriptdir=`cd $scriptdir; pwd`
-#                 (cd $scriptdir; pwd)
-#             }
-#             script_home=`where_this_script_lives`
-#             export GARNET_HOME=`cd $script_home/../..; pwd`
-#             echo "Setting GARNET_HOME='$GARNET_HOME'; hope that's correct...!"
-#         fi
-#         echo sourcing things
-#         need_space=100G
-# 
-#         # Setup script "source setup-buildkite.sh --dir <d>" does the following:
-#         #   - if unset yet, sets GARNET_HOME to wherever the setup script lives
-#         #   - checks <d> for sufficient disk space;
-#         #   - sets TMPDIR to /sim/tmp
-#         #   - sets python env BUT ONLY if you're running as buildkite-agent
-#         #   - source garnet-setup.sh for CAD paths
-#         #   - *finds or creates requested build directory <d>*
-#         #   - makes local link to mflowgen repo "/sim/buildkite-agent/mflowgen"
-#         #   - makes local copy of adk
-# 
-#         # We still need/want this, right? Not sure how it's gonnna work on VDE
-#         garnet=$GARNET_HOME
-#         echo "Sourcing 'setup-buildkite.sh'..."
-#         source $GARNET_HOME/mflowgen/bin/setup-buildkite.sh \
-#                --dir $build_dir \
-#                --need_space $need_space \
-#             || exit 13
-# 
-#         # If there's already a valid garnet in top level, use that
-#         top=`cd ..; pwd`
-#         echo "Look for existing garnet repo $top/garnet"
-#         if test -d $top/garnet; then
-#             echo "Found existing garnet repo $top/garnet"
-#             # (cd $top/garnet; git pull; git checkout adad99d)
-#             export GARNET_HOME=$top/garnet
-#         else
-#             gtmp=/sim/tmp/deleteme.garnet
-#             echo "Could not find existing garnet repo '$top/garnet'"
-#             echo "Cloning a new repo in '$gtmp'"
-#             test -e $gtmp && /bin/rm -rf $gtmp
-#             mkdir -p $gtmp
-#             git clone https://github.com/StanfordAHA/garnet $gtmp
-#             export GARNET_HOME=$gtmp
-#         fi
-#         echo "Checking out last known good version #adad99d"
-#         (cd $GARNET_HOME; git checkout adad99d)
-#         git log | head
-#     fi
-#     
-#     which mflowgen
-#     mflowgen run --design $GARNET_HOME/mflowgen/full_chip || exit 13
 
 ########################################################################
 # no longer needed maybe?

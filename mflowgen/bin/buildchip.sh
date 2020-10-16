@@ -192,13 +192,19 @@ if [ "$ACTION" == "new" ]; then
 
 
     echo DATE: `date`
-    echo "Initiating new build in dir '$build_dir'"; echo ""
-    echo "  " mkdir -p $build_dir; mkdir -p $build_dir
-    echo "  " cd       $build_dir; cd       $build_dir
+
+    if ! test -e $build_dir; then
+        echo "INFO '$build_dir' does not exist (yet)"
+        echo "I will build it for you..."
+        echo "    mkdir -p $build_dir"; mkdir -p $build_dir
+        echo ""
+    fi
+    echo "Initiating new build in dir '$build_dir'"
+    echo "    cd $build_dir"; cd $build_dir
     echo ""
 
     # Show how to read the logs
-    echo "fc=$(basename $build_dir)" ; # E.g. "full_chip.7"
+    echo "fc=$build_dir" ; # E.g. "/build/CI/full_chip/build..7"
     echo 'for f in $fc/logs.00/*; do echo $f: ; sed "s/^/  /" $f ; echo ""; done'
     echo ""
 
@@ -324,7 +330,8 @@ elif  [ "$ACTION" == "old" ]; then
     echo ""
 
     # Show how to read the logs
-    echo "fc=$(basename $build_dir)" ; # E.g. "full_chip.7"
+    # echo "fc=$(basename $build_dir)" ; # E.g. "full_chip.7"
+    echo "fc=$build_dir" ; # E.g. "/build/CI/full_chip/build..7"
     echo 'for logdir in $fc/logs.??; do'
     echo '  echo ------------------------------------------------'
     # echo '  for f in $fc/logs.00/*; do echo $f: ; sed "s/^/  /" $f ; echo ""; done'
