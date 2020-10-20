@@ -54,13 +54,13 @@ dse_fc = wrapped_peak_class(arch)
 dse_asm = asm_arch_closure(arch)(family.PyFamily())
 
 @pytest.mark.parametrize("PE", [
-("DSE", dse_fc, "PE_wrapped", dse_asm()),
-("Lassen", lassen_fc, "PE", lassen_asm.add()), 
+{"fc": dse_fc, "pe_fc_name": "PE_wrapped", "op": dse_asm(), "rules": None},
+{"fc": lassen_fc, "pe_fc_name": "PE", "op": lassen_asm.add(), "rules": lassen_rules}, 
 ])
 @pytest.mark.parametrize("app", examples_coreir)
 def test_netlist(PE, app, io_sides, dw_files):
 
-    PE_fc = PE[1]
+    PE_fc = PE["fc"]
 
     chip_size = 3
     interconnect = create_cgra(chip_size, chip_size, io_sides,
@@ -69,7 +69,6 @@ def test_netlist(PE, app, io_sides, dw_files):
                                mem_ratio=(1, 2))
 
 
-    print("STARTING TEST")
     c = CoreIRContext(reset=True)
     file_name = f"coreir_examples/post_mapped/{app}.json"
     cutil.load_libs(["commonlib"])
@@ -78,19 +77,13 @@ def test_netlist(PE, app, io_sides, dw_files):
     dag = cutil.coreir_to_dag(CoreIRNodes, cmod)
     print_dag(dag)
     arch_fc = PE_fc
-    name = "PE"
     ArchNodes = Nodes("Arch")
     putil.load_from_peak(ArchNodes, arch_fc)
-
-    if PE[0] == "Lassen":
-        mapper = Mapper(CoreIRNodes, ArchNodes, lazy=True, rule_file=lassen_rules)
-    else:
-        mapper = Mapper(CoreIRNodes, ArchNodes, lazy=True)
-
+    mapper = Mapper(CoreIRNodes, ArchNodes, lazy=True, rule_file=PE["rules"])
     mapped_dag = mapper.do_mapping(dag, prove_mapping=False)
     print_dag(mapped_dag)
     node_info = {
-        ArchNodes.dag_nodes[PE[2]] : 'p',
+        ArchNodes.dag_nodes[PE["pe_fc_name"]] : 'p',
         CoreIRNodes.dag_nodes["coreir.reg"][0]: 'R',
         CoreIRNodes.dag_nodes["coreir.reg"][1]: 'R',
         #CoreIRNodes.peak_nodes["corebit.reg"]: 'r'
@@ -118,7 +111,7 @@ def test_netlist(PE, app, io_sides, dw_files):
     print(config_data)
     x, y = placement["p2"]
     tile = interconnect.tile_circuits[(x, y)]
-    add_bs = tile.core.get_config_bitstream(PE[3])
+    add_bs = tile.core.get_config_bitstream(PE["op"])
     for addr, data in add_bs:
         config_data.append((interconnect.get_config_addr(addr, 0, x, y), data))
     config_data = compress_config_data(config_data)
