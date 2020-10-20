@@ -70,9 +70,10 @@ while [ $# -gt 0 ] ; do
         --re*)   ACTION=old; shift; build_dir=$1 ;;
         --cont*) ACTION=old; shift; build_dir=$1 ;;
         
-        --status)
-            ACTION=status; shift;
-            if expr "$1" : '[^-]'; then STATUS_ACTION=$1; shift; fi ;;
+        --status) ACTION=status; shift;
+                  if expr "$1" : '[^-]' > /dev/null; then
+                      STATUS_ACTION=$1; shift; # 'latest' or 'all'
+                  fi ;;
 
         *) echo "**ERROR: Unrecognized command-line arg '$1'"; Help; exit 13; ;;
     esac
@@ -80,7 +81,8 @@ while [ $# -gt 0 ] ; do
 done
 [ "$VERBOSE" ] && echo ACTION=$ACTION
 
-# If requested, emit status and exit
+########################################################################
+# --status :: if requested, emit status and exit
 if [ "$ACTION" == "status" ]; then
     [ "$VERBOSE" ] && echo STATUS_ACTION=$STATUS_ACTION
     [ "$VERBOSE" ] && echo ci_dir=$ci_dir
@@ -249,6 +251,9 @@ c; log=bt.log.$((i++)); echo "less $log"; bt |& tee $log | less
 
 # View latest build: bt --view latest?
 ls -l `ls -td /build/CI/full_chip/build.* | tail -1`
+c; bt --status
+c; bt --status all
+
 
 
 ########################################################################
