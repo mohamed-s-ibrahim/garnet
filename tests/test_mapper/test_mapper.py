@@ -1,10 +1,20 @@
-from mapper import CreateNetlist
+import random
+import tempfile
 import pytest
 import os
+import glob
+import shutil
+import math
+
+from mapper import CreateNetlist
 from canal.util import IOSide
 from archipelago import pnr
 from cgra import create_cgra, compress_config_data
+from gemstone.common.testers import BasicTester
+from peak import family
+
 from lassen import PE_fc as lassen_fc
+from lassen import asm as lassen_asm
 
 import metamapper.coreir_util as cutil
 from metamapper.common_passes import VerifyNodes, print_dag
@@ -16,26 +26,39 @@ from metamapper.coreir_mapper import Mapper
 
 from peak_gen.arch import read_arch
 from peak_gen.peak_wrapper import wrapped_peak_class
-
+from peak_gen.asm import asm_arch_closure
 
 
 @pytest.fixture()
 def io_sides():
     return IOSide.North | IOSide.East | IOSide.South | IOSide.West
 
-
+@pytest.fixture(scope="module")
+def dw_files():
+    filenames = ["DW_fp_add.v", "DW_fp_mult.v"]
+    dirname = "peak_core"
+    result_filenames = []
+    for name in filenames:
+        filename = os.path.join(dirname, name)
+        assert os.path.isfile(filename)
+        result_filenames.append(filename)
+    return result_filenames
 
 examples_coreir = [
     "add2",
 ]
 
 lassen_rules = "src/lassen/scripts/rewrite_rules/lassen_rewrite_rules.json"
-arch = read_arch("src/peak_generator/examples/misc_tests/test_add.json")
+arch = read_arch("src/peak_generator/examples/misc_tests/test_alu.json")
 dse_fc = wrapped_peak_class(arch)
+dse_asm = asm_arch_closure(arch)(family.PyFamily())
 
-@pytest.mark.parametrize("PE", [("Lassen", lassen_fc, "PE"), ("DSE", dse_fc, "PE_wrapped")])
+@pytest.mark.parametrize("PE", [
+("DSE", dse_fc, "PE_wrapped", dse_asm()),
+("Lassen", lassen_fc, "PE", lassen_asm.add()), 
+])
 @pytest.mark.parametrize("app", examples_coreir)
-def test_netlist(PE, app, io_sides):
+def test_netlist(PE, app, io_sides, dw_files):
 
     PE_fc = PE[1]
 
@@ -93,17 +116,58 @@ def test_netlist(PE, app, io_sides):
     placement, routing = pnr(interconnect, (netlist_info["netlist"], netlist_info["buses"]))
     config_data = interconnect.get_route_bitstream(routing)
     print(config_data)
+    x, y = placement["p2"]
+    tile = interconnect.tile_circuits[(x, y)]
+    add_bs = tile.core.get_config_bitstream(PE[3])
+    for addr, data in add_bs:
+        config_data.append((interconnect.get_config_addr(addr, 0, x, y), data))
+    config_data = compress_config_data(config_data)
 
-@pytest.fixture(scope="module")
-def dw_files():
-    filenames = ["DW_fp_add.v", "DW_fp_mult.v"]
-    dirname = "peak_core"
-    result_filenames = []
-    for name in filenames:
-        filename = os.path.join(dirname, name)
-        assert os.path.isfile(filename)
-        result_filenames.append(filename)
-    return result_filenames
+    circuit = interconnect.circuit()
+    tester = BasicTester(circuit, circuit.clk, circuit.reset)
+    tester.circuit.clk = 0
+    tester.reset()
+    # set the PE core
+    for addr, index in config_data:
+        tester.configure(addr, index)
+        tester.config_read(addr)
+        tester.eval()
+        tester.expect(circuit.read_config_data, index)
+
+    tester.done_config()
+
+    src_x0, src_y0 = placement["I0"]
+    src_x1, src_y1 = placement["I1"]
+    src_name0 = f"glb2io_16_X{src_x0:02X}_Y{src_y0:02X}"
+    src_name1 = f"glb2io_16_X{src_x1:02X}_Y{src_y1:02X}"
+    dst_x, dst_y = placement["I3"]
+    dst_name = f"io2glb_16_X{dst_x:02X}_Y{dst_y:02X}"
+    random.seed(0)
+    for _ in range(100):
+        num_1 = random.randrange(0, 256)
+        num_2 = random.randrange(0, 256)
+        tester.poke(circuit.interface[src_name0], num_1)
+        tester.poke(circuit.interface[src_name1], num_2)
+
+        tester.eval()
+        tester.expect(circuit.interface[dst_name], num_1 + num_2)
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        for genesis_verilog in glob.glob("genesis_verif/*.*"):
+            shutil.copy(genesis_verilog, tempdir)
+        for filename in dw_files:
+            shutil.copy(filename, tempdir)
+        shutil.copy(os.path.join("tests", "test_memory_core",
+                                 "sram_stub.v"),
+                    os.path.join(tempdir, "sram_512w_16b.v"))
+        for aoi_mux in glob.glob("tests/*.sv"):
+            shutil.copy(aoi_mux, tempdir)
+        tester.compile_and_run(target="verilator",
+                               magma_output="coreir-verilog",
+                               magma_opts={"coreir_libs": {"float_DW"}},
+                               directory=tempdir,
+                               flags=["-Wno-fatal"])
+
 
 
 apps = [
