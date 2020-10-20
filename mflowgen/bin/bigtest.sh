@@ -28,7 +28,7 @@ function Help {
 Description: Manual CI for garnet full_chip build
 
 Usage:
-   $cmd [ --retry <dir> ]
+   $cmd [ --retry <dir> ] gd[ --status latest ] [ --status all ]
 
 CI build directory:
    kiwi: /tmp/deleteme.buildchip.CI/full_chip/build.<n>
@@ -38,6 +38,9 @@ CI build directory:
 Options:
     '--retry <dir>' attempts to restart an existing failed build <dir>
     (Aliases for --retry include --restart, --continue, --cont ...)
+
+    '--status all'    show status of all builds
+    '--status latest' status of latest build only (default)
 
 Examples:
    # Build full_chip in e.g. new dir "/build/CI/full_chip/build.23"
@@ -51,6 +54,9 @@ EOF
 
 ########################################################################
 # command-line args
+
+# defaults
+STATUS_ACTION=latest
 ACTION=new
 VERBOSE=
 
@@ -64,12 +70,41 @@ while [ $# -gt 0 ] ; do
         --re*)   ACTION=old; shift; build_dir=$1 ;;
         --cont*) ACTION=old; shift; build_dir=$1 ;;
         
+        --status)
+            ACTION=status; shift;
+            if expr "$1" : '[^-]'; then STATUS_ACTION=$1; shift; fi ;;
+
         *) echo "**ERROR: Unrecognized command-line arg '$1'"; Help; exit 13; ;;
     esac
     shift
 done
-
 [ "$VERBOSE" ] && echo ACTION=$ACTION
+
+# If requested, emit status and exit
+if [ "$ACTION" == "status" ]; then
+    [ "$VERBOSE" ] && echo STATUS_ACTION=$STATUS_ACTION
+    [ "$VERBOSE" ] && echo ci_dir=$ci_dir
+    # for f in `\ls -t /build/CI/full_chip/build.*`; do
+    for f in `\ls -t $ci_dir/full_chip/build.*/buildchip.log`; do
+        hline='------------------------------------'
+        echo $hline$hline
+        echo STATUS $f
+        echo $hline$hline
+        egrep 'PASS|FAIL|ERROR' $f
+        # DONE if only want status of latest build
+        [ "$STATUS_ACTION" == "latest" ] && break
+    done
+    exit
+
+fi        
+
+# Fail early, fail often I guess
+if [ `hostname` == "r7arm-aha" ]; then
+    if ! [ "$USER" == "buildkite-agent" ]; then
+        echo "**ERROR: you are not buildkite-agent, this will not work"
+        exit 13
+    fi
+fi
 
 # FIXME should maybe check and err if `basename $build_dir` != $ci_dir
 # if [ "$ACTION" == "old" ]; then ci_dir=$(dirname $build_dir)
@@ -185,20 +220,59 @@ bt --retry 7
 
 # UNIT TESTS on arm7
 
-garnet=/sim/steveri/soc/components/cgra/garnet
-alias bt='$garnet/mflowgen/bin/bigtest.sh'
-
+# Update garnet branch(es)
 # (as steveri)
+garnet=/sim/steveri/soc/components/cgra/garnet
+(cd $garnet; git checkout master; git pull)
 (cd $garnet; git pull)
 (cd $garnet; git branch)
 (cd $garnet; git checkout civde2)
 
-bt --help
+# Must be agent
+xterm -e sudo su buildkite-agent &
+source ~steveri/env/bashrc
+xtitle agent
 
+
+# setup
+garnet=/sim/steveri/soc/components/cgra/garnet
+alias bt='$garnet/mflowgen/bin/bigtest.sh'
 cd /build/CI
 i=0
 
-c; log=bt.log.$((i++)); echo "less $log"; bt |& tee $log
+# Help
+bt --help
+
+# Run bigtest, output to bt.log.$i
+echo $i
+c; log=bt.log.$((i++)); echo "less $log"; bt |& tee $log | less
+
+# View latest build: bt --view latest?
+ls -l `ls -td /build/CI/full_chip/build.* | tail -1`
+
+
+########################################################################
+# bt --status latest
+latest=`\ls -td /build/CI/full_chip/build.* | tail -1`
+echo latest=$latest ; # E.g. latest=/build/CI/full_chip/build.0/
+
+egrep 'PASS|FAIL|ERROR' $build/buildchip.log
+  # ***ERROR: Looks like dir '/build/CI/full_chip/build.0' has only 92G
+  # ***ERROR: Dir '/build/CI/full_chip/build.0' needs at least 100G to continue
+  # **ERROR: Failed in LVS
+
+
+########################################################################
+# bt --status all
+for f in `\ls -t /build/CI/full_chip/build.*`; do
+    echo '------------------------------------------------------------'
+    echo STATUS $f
+    egrep 'PASS|FAIL|ERROR' $f
+done
+
+
+
+
 
 # DONE sourcing '/sim/steveri/soc/components/cgra/garnet/mflowgen/bin/setup-buildkite.sh' ...
 # Checking out last known good version #adad99d

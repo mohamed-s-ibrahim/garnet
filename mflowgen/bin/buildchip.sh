@@ -122,7 +122,7 @@ function setup_CI {
 
     source $script_home/setup-buildkite.sh \
       --dir $build_dir --need_space 100G || exit 13
-    echo "DONE sourcing '$script_home/setup-buildkite.sh' ..."
+    echo "DONE sourcing setup-buildkite.sh from '$script_home' ..."
     echo ""
 
     garnet=$GARNET_HOME
