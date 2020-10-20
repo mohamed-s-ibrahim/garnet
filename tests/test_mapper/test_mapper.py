@@ -4,7 +4,7 @@ import os
 from canal.util import IOSide
 from archipelago import pnr
 from cgra import create_cgra, compress_config_data
-from lassen import PE_fc
+from lassen import PE_fc as lassen_fc
 
 import metamapper.coreir_util as cutil
 from metamapper.common_passes import VerifyNodes, print_dag
@@ -14,7 +14,8 @@ from metamapper.node import Nodes, Constant
 import metamapper.peak_util as putil
 from metamapper.coreir_mapper import Mapper
 
-
+from peak_gen.arch import read_arch
+from peak_gen.peak_wrapper import wrapped_peak_class
 
 
 
@@ -29,10 +30,14 @@ examples_coreir = [
 ]
 
 lassen_rules = "src/lassen/scripts/rewrite_rules/lassen_rewrite_rules.json"
+arch = read_arch("src/peak_generator/examples/misc_tests/test_add.json")
+dse_fc = wrapped_peak_class(arch)
 
+@pytest.mark.parametrize("PE", [("Lassen", lassen_fc, "PE"), ("DSE", dse_fc, "PE_wrapped")])
 @pytest.mark.parametrize("app", examples_coreir)
-def test_netlist(app, io_sides):
+def test_netlist(PE, app, io_sides):
 
+    PE_fc = PE[1]
 
     chip_size = 3
     interconnect = create_cgra(chip_size, chip_size, io_sides,
@@ -53,13 +58,16 @@ def test_netlist(app, io_sides):
     name = "PE"
     ArchNodes = Nodes("Arch")
     putil.load_from_peak(ArchNodes, arch_fc)
-    mapper = Mapper(CoreIRNodes, ArchNodes, lazy=True, rule_file = lassen_rules)
+
+    if PE[0] == "Lassen":
+        mapper = Mapper(CoreIRNodes, ArchNodes, lazy=True, rule_file=lassen_rules)
+    else:
+        mapper = Mapper(CoreIRNodes, ArchNodes, lazy=True)
+
     mapped_dag = mapper.do_mapping(dag, prove_mapping=False)
     print_dag(mapped_dag)
-
-
     node_info = {
-        ArchNodes.dag_nodes["PE"] : 'p',
+        ArchNodes.dag_nodes[PE[2]] : 'p',
         CoreIRNodes.dag_nodes["coreir.reg"][0]: 'R',
         CoreIRNodes.dag_nodes["coreir.reg"][1]: 'R',
         #CoreIRNodes.peak_nodes["corebit.reg"]: 'r'
@@ -79,7 +87,8 @@ def test_netlist(app, io_sides):
     interconnect = create_cgra(chip_size, chip_size, io_sides,
                                num_tracks=3,
                                add_pd=True,
-                               mem_ratio=(1, 2))
+                               mem_ratio=(1, 2),
+                               pe_fc=PE_fc)
 
     placement, routing = pnr(interconnect, (netlist_info["netlist"], netlist_info["buses"]))
     config_data = interconnect.get_route_bitstream(routing)

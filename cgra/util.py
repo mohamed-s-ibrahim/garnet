@@ -46,7 +46,8 @@ def create_cgra(width: int, height: int, io_sides: IOSide,
                 switchbox_type: SwitchBoxType = SwitchBoxType.Imran,
                 port_conn_override: Dict[str,
                                          List[Tuple[SwitchBoxSide,
-                                                    SwitchBoxIO]]] = None):
+                                                    SwitchBoxIO]]] = None,
+                pe_fc = PE_fc):
     # currently only add 16bit io cores
     bit_widths = [1, 16]
     track_length = 1
@@ -82,7 +83,7 @@ def create_cgra(width: int, height: int, io_sides: IOSide,
             else:
                 core = MemCore(use_sram_stub=use_sram_stub) if \
                     ((x - x_min) % tile_max >= mem_tile_ratio) else \
-                    PeakCore(PE_fc)
+                    PeakCore(pe_fc)
 
             cores[(x, y)] = core
 
