@@ -102,7 +102,7 @@ if [ "$ACTION" == "history" ]; then
         filedate=`date -d@$timesec +"%b%d"`       ; # Oct20
         df=`dirname $f`; bdf=`basename $df`
         echo -n "  $filedate $bdf: "
-        tail -1 $f
+        grep . $f | tail -1 ; # Last non-null line
     done
     echo ""
     exit

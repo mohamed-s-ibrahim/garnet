@@ -370,20 +370,33 @@ i=0; ii=00; while test -e logs.$ii; do ((i+=1)); ii=`printf "%02d" $i`; done
 LD=logs.$ii; mkdir $LD
 
 # For testing purposes, just echo the date or something
-function make {
+function fake_make {
+    step=$1; log=$2
     # TEST: lvs fails, all others pass
 
-    printf "make %-30s >& %s\n" $1 $2
+    printf "make %-30s >& %s\n" $step $log
     # set +x >& /dev/null
     # echo `date`
-    if [ "$1" == "mentor-calibre-lvs" ]; then
-        echo FAIL make $1 >> $2
-        echo "**ERROR: Failed in LVS" | tee -a $2 ; exit 13
+    if [ "$step" == "mentor-calibre-lvs" ]; then
+        echo FAIL make $step >> $log
+        echo "**ERROR: Failed in LVS" | tee -a $log ; exit 13
+    else
+        echo PASS make $step >> $log
     fi
-    echo PASS make $1 >> $2
     sleep 1 ; # for sequential timestamps maybe
     # set -x
 }
+
+function real_make {
+    step=$1; log=$2
+    printf "make %-30s >& %s\n" $step $log
+    make $step > $log
+}
+
+
+function make { fake_make $* }
+function make { real_make $* }
+
 
 make rtl                             $LD/make00-rtl.log          || exit 13
 make tile_array                      $LD/make01-tile_array.log   || exit 13
@@ -399,7 +412,7 @@ make cadence-innovus-postroute       $LD/make10-postroute.log    || exit 13
 make cadence-innovus-postroute_hold  $LD/make11-hold.log         || exit 13
 make mentor-calibre-lvs              $LD/make12-lvs.log          || exit 13
 make mentor-calibre-drc              $LD/make13-drc.log          || exit 13
-
+echo PASS
 
 # To view logs:
 # logdir=logs.01
