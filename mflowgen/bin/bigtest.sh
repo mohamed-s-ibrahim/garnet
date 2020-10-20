@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Someday maybe this will be a command-line parm
+DESIGN=full_chip
+
 ########################################################################
 # Where this script lives
 
@@ -28,7 +31,7 @@ function Help {
 Description: Manual CI for garnet full_chip build
 
 Usage:
-   $cmd [ --retry <dir> ] gd[ --status latest ] [ --status all ]
+   $cmd [ OPTIONS ]
 
 CI build directory:
    kiwi: /tmp/deleteme.buildchip.CI/full_chip/build.<n>
@@ -39,6 +42,7 @@ Options:
     '--retry <dir>' attempts to restart an existing failed build <dir>
     (Aliases for --retry include --restart, --continue, --cont ...)
 
+    '--history'       build history
     '--status all'    show status of all builds
     '--status latest' status of latest build only (default)
 
@@ -69,10 +73,11 @@ while [ $# -gt 0 ] ; do
         # retry, restart, cont, continue...
         --re*)   ACTION=old; shift; build_dir=$1 ;;
         --cont*) ACTION=old; shift; build_dir=$1 ;;
+        --hist*) ACTION=history; ;;
         
-        --status) ACTION=status; shift;
-                  if expr "$1" : '[^-]' > /dev/null; then
-                      STATUS_ACTION=$1; shift; # 'latest' or 'all'
+        --status) ACTION=status;
+                  if expr "$2" : '[^-]' > /dev/null; then
+                      STATUS_ACTION=$2; shift; # 'latest' or 'all'
                   fi ;;
 
         *) echo "**ERROR: Unrecognized command-line arg '$1'"; Help; exit 13; ;;
@@ -81,6 +86,28 @@ while [ $# -gt 0 ] ; do
 done
 [ "$VERBOSE" ] && echo ACTION=$ACTION
 
+if [ "$ACTION" == "history" ]; then
+    # Example: bt --hist
+    #   /tmp/deleteme.buildchip.CI/full_chip/build.*/buildchip.log
+    #     Oct20 build.2: **ERROR: Failed in LVS
+    #     Oct20 build.1: **ERROR: Failed in LVS
+    #     Oct16 build.0: **ERROR: Failed in LVS
+
+    [ "$VERBOSE" ] && echo ci_dir=$ci_dir
+
+    echo "$ci_dir/full_chip/build.*/buildchip.log"
+    for f in `\ls -t $ci_dir/full_chip/build.*/buildchip.log`; do
+        timesec=`stat $f -c %Y`
+        # filedate=`date -d@$timesec +"%Y-%b-%d"` ; # 2020-Oct-20
+        filedate=`date -d@$timesec +"%b%d"`       ; # Oct20
+        df=`dirname $f`; bdf=`basename $df`
+        echo -n "  $filedate $bdf: "
+        tail -1 $f
+    done
+    echo ""
+    exit
+fi
+
 ########################################################################
 # --status :: if requested, emit status and exit
 if [ "$ACTION" == "status" ]; then
@@ -88,17 +115,15 @@ if [ "$ACTION" == "status" ]; then
     [ "$VERBOSE" ] && echo ci_dir=$ci_dir
     # for f in `\ls -t /build/CI/full_chip/build.*`; do
     for f in `\ls -t $ci_dir/full_chip/build.*/buildchip.log`; do
-        hline='------------------------------------'
-        echo $hline$hline
         echo STATUS $f
-        echo $hline$hline
-        egrep 'PASS|FAIL|ERROR' $f
+        egrep 'PASS|FAIL|ERROR' $f | sed 's/^/    /'
+        echo ''
         # DONE if only want status of latest build
         [ "$STATUS_ACTION" == "latest" ] && break
     done
     exit
 
-fi        
+fi
 
 # Fail early, fail often I guess
 if [ `hostname` == "r7arm-aha" ]; then
@@ -117,25 +142,23 @@ echo ""
 ########################################################################
 # Find global CI log dir responsible for coordinating all the builds,
 # e.g. "/build/CI/full_chip.HIST"
-design=full_chip
-
 if [ "$ACTION" == "new" ]; then
 
     ########################################################################
     # Look at existing builds to find next-seq no. for this new build
 
-    # E.g. $ci_dir/$design=/build/CI/full_chip
-    if ! test -e $ci_dir/$design; then
-        echo "WARNING did not find design dir '$ci_dir/$design'"
+    # E.g. $ci_dir/$DESIGN=/build/CI/full_chip
+    if ! test -e $ci_dir/$DESIGN; then
+        echo "WARNING did not find design dir '$ci_dir/$DESIGN'"
         echo "Is this your first time?"
         echo "I will build it for you..."
-        echo "    mkdir -p $ci_dir/$design"; mkdir -p $ci_dir/$design
+        echo "    mkdir -p $ci_dir/$DESIGN"; mkdir -p $ci_dir/$DESIGN
     fi
 
-    # E.g. ls $ci_dir/$design => build.0,build.1...
-    pushd $ci_dir/$design >& /dev/null
+    # E.g. ls $ci_dir/$DESIGN => build.0,build.1...
+    pushd $ci_dir/$DESIGN >& /dev/null
       n=$(\ls -d build.* |& \egrep "^build.[0-9]*" | # build.{0,1,83,112...}
-        sed "s|^$design.||" |                        # {0,1,83,112...}
+        sed "s|^build.||" |                        # {0,1,83,112...}
         sort -n | tail -1)                           # 112
       echo $n
     popd >& /dev/null
@@ -144,7 +167,7 @@ if [ "$ACTION" == "new" ]; then
     build=build.0
     [ "$n" ] && build=build.$((n+1))   # E.g. 'build.14'
 
-    build_dir=$ci_dir/$design/$build  # E.g. '/build/CI/full_chip/build.14'
+    build_dir=$ci_dir/$DESIGN/$build  # E.g. '/build/CI/full_chip/build.14'
     if test -e $build_dir; then
         echo "WARNING '$build_dir' already exists (it shouldn't)."
     else
@@ -177,7 +200,7 @@ elif  [ "$ACTION" == "old" ]; then
 
     build_num=` expr $build_dir : '^[^0-9]*\([0-9]*\)'` ; # E.g. "7"
     build=build.$build_num            ; # E.g. 'build.7'
-    build_dir=$ci_dir/$design/$build  ; # E.g. '/build/CI/full_chip/build.7'
+    build_dir=$ci_dir/$DESIGN/$build  ; # E.g. '/build/CI/full_chip/build.7'
 
     # basename $build_dir -- to find "full_chip.7"
     # log=$logdir/full_chip.7 or something
