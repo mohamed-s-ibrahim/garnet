@@ -393,10 +393,8 @@ function real_make {
     make $step > $log
 }
 
-
-function make { fake_make $* }
-function make { real_make $* }
-
+function make { fake_make $*; }
+function make { real_make $*; }
 
 make rtl                             $LD/make00-rtl.log          || exit 13
 make tile_array                      $LD/make01-tile_array.log   || exit 13
