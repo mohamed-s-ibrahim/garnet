@@ -390,26 +390,27 @@ function fake_make {
 function real_make {
     step=$1; log=$2
     printf "make %-30s >& %s\n" $step $log
-    make $step > $log
+    make $step >& $log
 }
 
-function make { fake_make $*; }
-function make { real_make $*; }
+# FIXME this is just getting worse and worse...
+function bcmake { fake_make $*; }
+function bcmake { real_make $*; }
 
-make rtl                             $LD/make00-rtl.log          || exit 13
-make tile_array                      $LD/make01-tile_array.log   || exit 13
-make glb_top                         $LD/make02-glb_top.log      || exit 13
-make global_controller               $LD/make03-GLC.log          || exit 13
-make dragonphy                       $LD/make04-dragon.log       || exit 13
-make soc-rtl                         $LD/make05-soc-rtl.log      || exit 13
-make synopsys-dc-synthesis           $LD/make06-syn.log          || exit 13
-make cadence-innovus-cts             $LD/make07-cts.log          || exit 13
-make cadence-innovus-place           $LD/make08-place.log        || exit 13
-make cadence-innovus-route           $LD/make09-route.log        || exit 13
-make cadence-innovus-postroute       $LD/make10-postroute.log    || exit 13
-make cadence-innovus-postroute_hold  $LD/make11-hold.log         || exit 13
-make mentor-calibre-lvs              $LD/make12-lvs.log          || exit 13
-make mentor-calibre-drc              $LD/make13-drc.log          || exit 13
+bcmake rtl                             $LD/make00-rtl.log          || exit 13
+bcmake tile_array                      $LD/make01-tile_array.log   || exit 13
+bcmake glb_top                         $LD/make02-glb_top.log      || exit 13
+bcmake global_controller               $LD/make03-GLC.log          || exit 13
+bcmake dragonphy                       $LD/make04-dragon.log       || exit 13
+bcmake soc-rtl                         $LD/make05-soc-rtl.log      || exit 13
+bcmake synopsys-dc-synthesis           $LD/make06-syn.log          || exit 13
+bcmake cadence-innovus-cts             $LD/make07-cts.log          || exit 13
+bcmake cadence-innovus-place           $LD/make08-place.log        || exit 13
+bcmake cadence-innovus-route           $LD/make09-route.log        || exit 13
+bcmake cadence-innovus-postroute       $LD/make10-postroute.log    || exit 13
+bcmake cadence-innovus-postroute_hold  $LD/make11-hold.log         || exit 13
+bcmake mentor-calibre-lvs              $LD/make12-lvs.log          || exit 13
+bcmake mentor-calibre-drc              $LD/make13-drc.log          || exit 13
 echo PASS
 
 # To view logs:
